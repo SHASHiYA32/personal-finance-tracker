@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Sparkles, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Sparkles, Mail, Lock, User, ArrowRight, LockOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function RegisterPage() {
@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [viewPass, setViewPass] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +94,7 @@ export default function RegisterPage() {
                 Display Name
               </label>
               <div className="relative">
-                <User className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+                <User className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-500" />
                 <input
                   type="text"
                   required
@@ -110,7 +111,7 @@ export default function RegisterPage() {
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
+                <Mail className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-500" />
                 <input
                   type="email"
                   required
@@ -127,16 +128,27 @@ export default function RegisterPage() {
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 glass-input"
+              {viewPass ? (
+                <LockOpen
+                  className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-500 cursor-pointer"
+                  onClick={() => setViewPass(false)}
                 />
-              </div>
+              ) : (
+                <Lock
+                  className="absolute right-3.5 top-3.5 h-4 w-4 text-slate-500 cursor-pointer"
+                  onClick={() => setViewPass(true)}
+                />
+              )}
+
+              <input
+                type={viewPass ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-10 glass-input"
+              />
+            </div>
             </div>
 
             <button

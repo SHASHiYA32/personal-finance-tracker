@@ -1,7 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Plus, HelpCircle } from 'lucide-react';
+import { useState } from "react";
+import { Plus, HelpCircle } from "lucide-react";
+import { Input } from "../ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ExpenseFormProps {
   onSubmit: (data: {
@@ -14,34 +22,34 @@ interface ExpenseFormProps {
 }
 
 const CATEGORIES = [
-  'Food',
-  'Rent/Housing',
-  'Transport',
-  'Utilities',
-  'Entertainment',
-  'Shopping',
-  'Other',
+  "Food",
+  "Rent/Housing",
+  "Transport",
+  "Utilities",
+  "Entertainment",
+  "Shopping",
+  "Other",
 ];
 
 export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('Food');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [note, setNote] = useState('');
+  const [title, setTitle] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("Food");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !amount || !category || !date) {
-      setError('Please fill in all required fields.');
+      setError("Please fill in all required fields.");
       return;
     }
 
     const numericAmount = Number(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      setError('Amount must be a positive number.');
+      setError("Amount must be a positive number.");
       return;
     }
 
@@ -58,13 +66,13 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
       });
 
       // Reset Form
-      setTitle('');
-      setAmount('');
-      setCategory('Food');
-      setDate(new Date().toISOString().split('T')[0]);
-      setNote('');
+      setTitle("");
+      setAmount("");
+      setCategory("Food");
+      setDate(new Date().toISOString().split("T")[0]);
+      setNote("");
     } catch (err: any) {
-      setError(err.message || 'Failed to submit expense');
+      setError(err.message || "Failed to submit expense");
     } finally {
       setSubmitting(false);
     }
@@ -84,12 +92,11 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Title */}
         <div>
           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             Expense Description *
           </label>
-          <input
+          <Input
             type="text"
             required
             placeholder="e.g. Grocery Store, Rent, Uber"
@@ -105,7 +112,7 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
               Amount (USD) *
             </label>
-            <input
+            <Input
               type="number"
               step="0.01"
               min="0.01"
@@ -121,17 +128,24 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
               Category *
             </label>
-            <select
+            <Select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full glass-input appearance-none bg-slate-900"
+              onValueChange={(value) => {
+                if (value) setCategory(value);
+              }}
             >
-              {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full glass-input bg-slate-900">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+
+              <SelectContent className="bg-slate-900 border-white/10 backdrop-blur-xl">
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -140,7 +154,7 @@ export default function ExpenseForm({ onSubmit }: ExpenseFormProps) {
           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             Transaction Date *
           </label>
-          <input
+          <Input
             type="date"
             required
             value={date}

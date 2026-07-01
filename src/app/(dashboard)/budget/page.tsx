@@ -1,40 +1,53 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useBudget } from '@/hooks/use-budget';
-import { useExpenses } from '@/hooks/use-expenses';
-import { formatCurrency } from '@/lib/helpers/currency';
-import { 
-  Sparkles, 
-  PiggyBank, 
-  Plus, 
-  Trash2, 
+import { useState, useEffect } from "react";
+import { useBudget } from "@/hooks/use-budget";
+import { useExpenses } from "@/hooks/use-expenses";
+import { formatCurrency } from "@/lib/helpers/currency";
+import {
+  Sparkles,
+  PiggyBank,
+  Plus,
+  Trash2,
   AlertTriangle,
   CheckCircle2,
-  AlertCircle
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+  AlertCircle,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CATEGORIES = [
-  'Food',
-  'Rent/Housing',
-  'Transport',
-  'Utilities',
-  'Entertainment',
-  'Shopping',
-  'Other',
+  "Food",
+  "Rent/Housing",
+  "Transport",
+  "Utilities",
+  "Entertainment",
+  "Shopping",
+  "Other",
 ];
 
 export default function BudgetPage() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const { budgets, fetchBudgets, setBudget, deleteBudget, loading: budgetsLoading } = useBudget();
+  const {
+    budgets,
+    fetchBudgets,
+    setBudget,
+    deleteBudget,
+    loading: budgetsLoading,
+  } = useBudget();
   const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
 
   // Form State
-  const [category, setCategory] = useState('Food');
-  const [limit, setLimit] = useState('');
+  const [category, setCategory] = useState("Food");
+  const [limit, setLimit] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,21 +57,24 @@ export default function BudgetPage() {
   }, [currentMonth, currentYear, fetchBudgets, fetchExpenses]);
 
   // Aggregate Expenses by Category
-  const categorySpending = expenses.reduce((acc, exp) => {
-    acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
-    return acc;
-  }, {} as Record<string, number>);
+  const categorySpending = expenses.reduce(
+    (acc, exp) => {
+      acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const handleSetBudget = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!category || !limit) {
-      setError('Please fill in all fields.');
+      setError("Please fill in all fields.");
       return;
     }
 
     const numericLimit = Number(limit);
     if (isNaN(numericLimit) || numericLimit <= 0) {
-      setError('Budget limit must be a positive number.');
+      setError("Budget limit must be a positive number.");
       return;
     }
 
@@ -67,9 +83,9 @@ export default function BudgetPage() {
 
     try {
       await setBudget(category, numericLimit, currentMonth, currentYear);
-      setLimit('');
+      setLimit("");
     } catch (err: any) {
-      setError(err.message || 'Failed to configure budget.');
+      setError(err.message || "Failed to configure budget.");
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +94,7 @@ export default function BudgetPage() {
   const handleQuickSet = (cat: string) => {
     setCategory(cat);
     // Focus the limit input if we can, or just set category
-    const limitInput = document.getElementById('budget-limit-input');
+    const limitInput = document.getElementById("budget-limit-input");
     if (limitInput) limitInput.focus();
   };
 
@@ -86,7 +102,6 @@ export default function BudgetPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header Banner */}
       <div className="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-pink-400 font-semibold text-xs uppercase tracking-wider">
@@ -97,7 +112,8 @@ export default function BudgetPage() {
             Category Limits
           </h3>
           <p className="text-slate-400 text-xs mt-0.5">
-            Configure monthly targets per category and monitor your spending thresholds to prevent overspending.
+            Configure monthly targets per category and monitor your spending
+            thresholds to prevent overspending.
           </p>
         </div>
 
@@ -107,9 +123,13 @@ export default function BudgetPage() {
             <PiggyBank className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Total Limit</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+              Total Limit
+            </p>
             <p className="text-lg font-bold text-white mt-1.5 leading-none">
-              {formatCurrency(budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0))}
+              {formatCurrency(
+                budgets.reduce((sum, b) => sum + Number(b.monthly_limit), 0),
+              )}
             </p>
           </div>
         </div>
@@ -135,17 +155,30 @@ export default function BudgetPage() {
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                   Budget Category
                 </label>
-                <select
+                <Select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full glass-input appearance-none bg-slate-900"
+                  onValueChange={(value) => {
+                    if (value) {
+                      setCategory(value);
+                    }
+                  }}
                 >
-                  {CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full glass-input border-white/10 bg-white/5 backdrop-blur-md">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+
+                  <SelectContent className="border-white/10 bg-slate-900/95 backdrop-blur-xl">
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem
+                        key={cat}
+                        value={cat}
+                        className="focus:bg-white/10"
+                      >
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -186,7 +219,9 @@ export default function BudgetPage() {
         {/* Budget lists & progress bars */}
         <div className="lg:col-span-2 space-y-6">
           <div className="glass-panel p-6 w-full space-y-6">
-            <h4 className="text-sm font-bold text-slate-200">Budget Progress Tracker</h4>
+            <h4 className="text-sm font-bold text-slate-200">
+              Budget Progress Tracker
+            </h4>
 
             <div className="space-y-6">
               {loading && budgets.length === 0 ? (
@@ -198,27 +233,35 @@ export default function BudgetPage() {
                   const budgetItem = budgets.find((b) => b.category === cat);
                   const spend = categorySpending[cat] || 0;
                   const hasBudget = !!budgetItem;
-                  const limitVal = budgetItem ? Number(budgetItem.monthly_limit) : 0;
-                  
+                  const limitVal = budgetItem
+                    ? Number(budgetItem.monthly_limit)
+                    : 0;
+
                   // Compute ratio
                   const percent = limitVal > 0 ? (spend / limitVal) * 100 : 0;
-                  
+
                   // Progress styling threshold rules
-                  let barColor = 'bg-emerald-500';
-                  let textColor = 'text-emerald-400';
-                  let bgGlow = 'rgba(16, 185, 129, 0.15)';
-                  let statusIcon = <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />;
-                  
+                  let barColor = "bg-emerald-500";
+                  let textColor = "text-emerald-400";
+                  let bgGlow = "rgba(16, 185, 129, 0.15)";
+                  let statusIcon = (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                  );
+
                   if (percent >= 100) {
-                    barColor = 'bg-rose-500';
-                    textColor = 'text-rose-400';
-                    bgGlow = 'rgba(239, 68, 68, 0.15)';
-                    statusIcon = <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />;
+                    barColor = "bg-rose-500";
+                    textColor = "text-rose-400";
+                    bgGlow = "rgba(239, 68, 68, 0.15)";
+                    statusIcon = (
+                      <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+                    );
                   } else if (percent >= 75) {
-                    barColor = 'bg-amber-500';
-                    textColor = 'text-amber-400';
-                    bgGlow = 'rgba(245, 158, 11, 0.15)';
-                    statusIcon = <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />;
+                    barColor = "bg-amber-500";
+                    textColor = "text-amber-400";
+                    bgGlow = "rgba(245, 158, 11, 0.15)";
+                    statusIcon = (
+                      <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                    );
                   }
 
                   return (
@@ -229,15 +272,26 @@ export default function BudgetPage() {
                       {/* Description Header */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 min-w-0">
-                          {hasBudget ? statusIcon : <div className="h-4 w-4 rounded-full border border-slate-600 shrink-0" />}
-                          <span className="text-sm font-semibold text-white truncate">{cat}</span>
+                          {hasBudget ? (
+                            statusIcon
+                          ) : (
+                            <div className="h-4 w-4 rounded-full border border-slate-600 shrink-0" />
+                          )}
+                          <span className="text-sm font-semibold text-white truncate">
+                            {cat}
+                          </span>
                         </div>
 
                         <div className="text-right shrink-0">
                           {hasBudget ? (
                             <span className="text-xs font-semibold text-slate-300">
-                              <span className="text-white font-bold">{formatCurrency(spend)}</span>
-                              <span className="text-slate-500 font-medium"> / {formatCurrency(limitVal)}</span>
+                              <span className="text-white font-bold">
+                                {formatCurrency(spend)}
+                              </span>
+                              <span className="text-slate-500 font-medium">
+                                {" "}
+                                / {formatCurrency(limitVal)}
+                              </span>
                             </span>
                           ) : (
                             <button
@@ -257,7 +311,7 @@ export default function BudgetPage() {
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${Math.min(100, percent)}%` }}
-                              transition={{ duration: 0.8, ease: 'easeOut' }}
+                              transition={{ duration: 0.8, ease: "easeOut" }}
                               className={`h-full ${barColor} rounded-full`}
                               style={{ boxShadow: `0 0 8px ${bgGlow}` }}
                             />
@@ -267,16 +321,22 @@ export default function BudgetPage() {
                             <span className="text-slate-500 font-semibold uppercase tracking-wider">
                               Usage: {percent.toFixed(0)}%
                             </span>
-                            
+
                             <div className="flex items-center gap-2">
                               {percent >= 100 ? (
-                                <span className="text-rose-400 font-semibold uppercase tracking-wider">Over Budget</span>
+                                <span className="text-rose-400 font-semibold uppercase tracking-wider">
+                                  Over Budget
+                                </span>
                               ) : percent >= 75 ? (
-                                <span className="text-amber-400 font-semibold uppercase tracking-wider">Approaching Limit</span>
+                                <span className="text-amber-400 font-semibold uppercase tracking-wider">
+                                  Approaching Limit
+                                </span>
                               ) : (
-                                <span className="text-emerald-400 font-semibold uppercase tracking-wider">On Track</span>
+                                <span className="text-emerald-400 font-semibold uppercase tracking-wider">
+                                  On Track
+                                </span>
                               )}
-                              
+
                               <button
                                 onClick={() => deleteBudget(budgetItem.id)}
                                 className="text-slate-500 hover:text-rose-400 transition-colors p-1"

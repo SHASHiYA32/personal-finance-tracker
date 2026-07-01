@@ -61,7 +61,6 @@
   --color-card: var(--card);
 }
 
-/* Glassmorphism Styles */
 .glass-panel {
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(16px);
@@ -201,6 +200,7 @@
     background: radial-gradient(circle at 80% 10%, rgba(99, 102, 241, 0.15), transparent 45%),
                 radial-gradient(circle at 10% 80%, rgba(236, 72, 153, 0.08), transparent 45%),
                 #030712;
+    background-attachment: fixed;
     min-height: 100vh;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     overflow-x: hidden;

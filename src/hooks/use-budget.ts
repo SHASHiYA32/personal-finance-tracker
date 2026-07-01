@@ -46,7 +46,6 @@ export function useBudget() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Use upsert to insert or update the budget for the specified unique categories/month/year
       const { data, error: upsertError } = await supabase
         .from('budgets')
         .upsert({
@@ -63,7 +62,6 @@ export function useBudget() {
 
       if (upsertError) throw upsertError;
 
-      // Update state
       setBudgets((prev) => {
         const index = prev.findIndex((b) => b.category === category && b.month === month && b.year === year);
         if (index > -1) {

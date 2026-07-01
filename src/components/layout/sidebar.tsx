@@ -11,7 +11,8 @@ import {
   LineChart, 
   Settings, 
   LogOut,
-  Sparkles
+  Sparkles,
+  CalendarSearch
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -20,6 +21,7 @@ const menuItems = [
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Income', href: '/income', icon: Wallet },
   { name: 'Budget', href: '/budget', icon: PiggyBank },
+  { name: 'Calender', href: '/calender', icon: CalendarSearch },
   { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];

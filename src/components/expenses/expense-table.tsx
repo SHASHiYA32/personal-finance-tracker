@@ -1,17 +1,25 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Expense } from '@/types/expense';
-import { formatCurrency } from '@/lib/helpers/currency';
-import { formatDate } from '@/lib/helpers/date';
-import { 
-  Trash2, 
-  Search, 
+import { useState } from "react";
+import { Expense } from "@/types/expense";
+import { formatCurrency } from "@/lib/helpers/currency";
+import { formatDate } from "@/lib/helpers/date";
+import {
+  Trash2,
+  Search,
   ArrowUpDown,
   Filter,
   Calendar,
-  DollarSign
-} from 'lucide-react';
+  DollarSign,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "../ui/input";
 
 interface ExpenseTableProps {
   expenses: Expense[];
@@ -20,26 +28,26 @@ interface ExpenseTableProps {
 }
 
 const CATEGORIES = [
-  'All',
-  'Food',
-  'Rent/Housing',
-  'Transport',
-  'Utilities',
-  'Entertainment',
-  'Shopping',
-  'Other',
+  "All",
+  "Food",
+  "Rent/Housing",
+  "Transport",
+  "Utilities",
+  "Entertainment",
+  "Shopping",
+  "Other",
 ];
 
-type SortKey = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
+type SortKey = "date-desc" | "date-asc" | "amount-desc" | "amount-asc";
 
 export default function ExpenseTable({
   expenses,
   onDelete,
   loading,
 }: ExpenseTableProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState<SortKey>('date-desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortBy, setSortBy] = useState<SortKey>("date-desc");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {
@@ -56,22 +64,24 @@ export default function ExpenseTable({
   // Filter & Search Logic
   const filteredExpenses = expenses
     .filter((exp) => {
-      const matchesSearch = exp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (exp.note && exp.note.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesCategory = selectedCategory === 'All' || exp.category === selectedCategory;
+      const matchesSearch =
+        exp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (exp.note && exp.note.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesCategory =
+        selectedCategory === "All" || exp.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
-      if (sortBy === 'date-desc') {
+      if (sortBy === "date-desc") {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       }
-      if (sortBy === 'date-asc') {
+      if (sortBy === "date-asc") {
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       }
-      if (sortBy === 'amount-desc') {
+      if (sortBy === "amount-desc") {
         return Number(b.amount) - Number(a.amount);
       }
-      if (sortBy === 'amount-asc') {
+      if (sortBy === "amount-asc") {
         return Number(a.amount) - Number(b.amount);
       }
       return 0;
@@ -84,8 +94,8 @@ export default function ExpenseTable({
         {/* Search and Sort controls */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <input
+            <Search className="absolute right-3 top-2 h-4 w-4 text-slate-500" />
+            <Input
               type="text"
               placeholder="Search expenses description..."
               value={searchTerm}
@@ -93,19 +103,29 @@ export default function ExpenseTable({
               className="w-full pl-10 glass-input"
             />
           </div>
-          
-          <div className="relative">
-            <ArrowUpDown className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-            <select
+
+          <div className="flex flex-row items-center gap-2">
+            <ArrowUpDown className="h-6 w-6 text-slate-500 z-10 pointer-events-none" />
+
+            <Select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="pl-10 pr-8 py-3.5 glass-input appearance-none bg-slate-900 font-medium text-xs uppercase tracking-wider"
+              onValueChange={(value) => {
+                if (value) {
+                  setSortBy(value as SortKey);
+                }
+              }}
             >
-              <option value="date-desc">Latest Date</option>
-              <option value="date-asc">Oldest Date</option>
-              <option value="amount-desc">Highest Cost</option>
-              <option value="amount-asc">Lowest Cost</option>
-            </select>
+              <SelectTrigger className="w-full pl-10 pr-8 py-3.5 glass-input bg-slate-900 font-medium text-xs uppercase tracking-wider">
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+
+              <SelectContent className="bg-slate-900 border-white/10 backdrop-blur-xl">
+                <SelectItem value="date-desc">Latest Date</SelectItem>
+                <SelectItem value="date-asc">Oldest Date</SelectItem>
+                <SelectItem value="amount-desc">Highest Cost</SelectItem>
+                <SelectItem value="amount-asc">Lowest Cost</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -118,8 +138,8 @@ export default function ExpenseTable({
               onClick={() => setSelectedCategory(cat)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
                 selectedCategory === cat
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'bg-white/5 border border-white/5 text-slate-400 hover:text-slate-200'
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "bg-white/5 border border-white/5 text-slate-400 hover:text-slate-200"
               }`}
             >
               {cat}
@@ -176,7 +196,7 @@ export default function ExpenseTable({
                   <span className="text-base font-bold text-white leading-none">
                     {formatCurrency(exp.amount)}
                   </span>
-                  
+
                   <button
                     onClick={() => handleDelete(exp.id)}
                     disabled={isDeleting}
