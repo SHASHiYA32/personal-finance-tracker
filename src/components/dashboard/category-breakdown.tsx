@@ -97,8 +97,8 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
             
             {/* Center Total Label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Total</span>
-              <span className="text-lg font-bold text-white mt-0.5">
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold z-[-1]">Total</span>
+              <span className="text-lg font-bold text-white mt-0.5 z-[-1]">
                 {formatCurrency(total)}
               </span>
             </div>

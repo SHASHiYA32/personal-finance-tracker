@@ -32,7 +32,6 @@ export default function StatsCard({
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="glass-panel glass-panel-hover p-6 relative overflow-hidden"
     >
-      {/* Decorative Glow background */}
       <div className={`absolute -right-10 -top-10 w-24 h-24 rounded-full blur-3xl opacity-20 transition-opacity duration-300 group-hover:opacity-40 ${glowColorClass}`} />
 
       <div className="flex items-start justify-between">

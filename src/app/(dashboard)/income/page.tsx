@@ -1,56 +1,68 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useIncome } from '@/hooks/use-income';
-import { formatCurrency } from '@/lib/helpers/currency';
-import { formatDate } from '@/lib/helpers/date';
-import { 
-  Sparkles, 
-  DollarSign, 
-  Plus, 
-  Trash2, 
+import { useState, useEffect } from "react";
+import { useIncome } from "@/hooks/use-income";
+import { formatCurrency } from "@/lib/helpers/currency";
+import { formatDate } from "@/lib/helpers/date";
+import {
+  Sparkles,
+  DollarSign,
+  Plus,
+  Trash2,
   Calendar,
   Search,
   ArrowUpDown,
-  Wallet
-} from 'lucide-react';
+  Wallet,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-type SortKey = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc';
+type SortKey = "date-desc" | "date-asc" | "amount-desc" | "amount-asc";
 
 export default function IncomePage() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
-  const { incomes, loading, fetchIncomes, addIncome, deleteIncome } = useIncome();
+  const { incomes, loading, fetchIncomes, addIncome, deleteIncome } =
+    useIncome();
 
   // Form State
-  const [source, setSource] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [source, setSource] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Table State
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<SortKey>('date-desc');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("date-desc");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchIncomes(currentMonth, currentYear);
   }, [currentMonth, currentYear, fetchIncomes]);
 
-  const totalIncome = incomes.reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const totalIncome = incomes.reduce(
+    (acc, curr) => acc + Number(curr.amount),
+    0,
+  );
 
   // Handlers
   const handleAddIncome = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!source || !amount || !date) {
-      setFormError('Please fill in all required fields.');
+      setFormError("Please fill in all required fields.");
       return;
     }
 
     const numericAmount = Number(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) {
-      setFormError('Amount must be a positive number.');
+      setFormError("Amount must be a positive number.");
       return;
     }
 
@@ -65,11 +77,11 @@ export default function IncomePage() {
       });
 
       // Reset
-      setSource('');
-      setAmount('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setSource("");
+      setAmount("");
+      setDate(new Date().toISOString().split("T")[0]);
     } catch (err: any) {
-      setFormError(err.message || 'Failed to add income entry.');
+      setFormError(err.message || "Failed to add income entry.");
     } finally {
       setSubmitting(false);
     }
@@ -86,20 +98,21 @@ export default function IncomePage() {
     }
   };
 
-  // Filter & Sort Logic
   const filteredIncomes = incomes
-    .filter((inc) => inc.source.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((inc) =>
+      inc.source.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
     .sort((a, b) => {
-      if (sortBy === 'date-desc') {
+      if (sortBy === "date-desc") {
         return new Date(b.date).getTime() - new Date(a.date).getTime();
       }
-      if (sortBy === 'date-asc') {
+      if (sortBy === "date-asc") {
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       }
-      if (sortBy === 'amount-desc') {
+      if (sortBy === "amount-desc") {
         return Number(b.amount) - Number(a.amount);
       }
-      if (sortBy === 'amount-asc') {
+      if (sortBy === "amount-asc") {
         return Number(a.amount) - Number(b.amount);
       }
       return 0;
@@ -109,26 +122,30 @@ export default function IncomePage() {
     <div className="space-y-8">
       {/* Header Banner */}
       <div className="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs uppercase tracking-wider">
             <Sparkles className="h-4 w-4" />
             <span>Income Streams</span>
           </div>
-          <h3 className="text-xl md:text-2xl font-extrabold text-white mt-1">
-            Manage your earnings.
-          </h3>
-          <p className="text-slate-400 text-xs mt-0.5">
-            Log your salaries, side hustles, investment payouts, and keep your incoming cash flow history clean.
-          </p>
+          <div className="flex flex-col gap-1">
+            <h3 className="text-xl md:text-2xl font-extrabold text-white mt-1">
+              Manage your earnings.
+            </h3>
+            <p className="text-slate-400 text-xs mt-0.5">
+              Log your salaries, side hustles, investment payouts, and keep your
+              incoming cash flow history clean.
+            </p>
+          </div>
         </div>
 
-        {/* Monthly total display */}
         <div className="glass-panel py-3 px-5 border-white/5 bg-white/[0.02] flex items-center gap-3 self-start md:self-auto shrink-0">
           <div className="h-9 w-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
             <DollarSign className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Month Income</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+              Month Income
+            </p>
             <p className="text-lg font-bold text-white mt-1.5 leading-none">
               {formatCurrency(totalIncome)}
             </p>
@@ -136,10 +153,8 @@ export default function IncomePage() {
         </div>
       </div>
 
-      {/* Grid: Form and Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Income recording form */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 gap-3">
           <div className="glass-panel p-6 w-full relative overflow-hidden">
             <h3 className="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
               <Plus className="h-4.5 w-4.5 text-emerald-400" />
@@ -157,7 +172,7 @@ export default function IncomePage() {
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                   Income Source *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   placeholder="e.g. Salary, Freelance project, Dividends"
@@ -169,9 +184,9 @@ export default function IncomePage() {
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Amount Earned (USD) *
+                  Amount Earned (LKR) *
                 </label>
-                <input
+                <Input
                   type="number"
                   step="0.01"
                   min="0.01"
@@ -187,7 +202,7 @@ export default function IncomePage() {
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                   Receipt Date *
                 </label>
-                <input
+                <Input
                   type="date"
                   required
                   value={date}
@@ -214,14 +229,12 @@ export default function IncomePage() {
           </div>
         </div>
 
-        {/* Income logs timeline */}
         <div className="lg:col-span-2">
           <div className="glass-panel p-6 w-full space-y-6">
-            {/* Table controls */}
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-                <input
+                <Search className="absolute right-3 top-2 h-4 w-4 text-slate-500" />
+                <Input
                   type="text"
                   placeholder="Search income sources..."
                   value={searchTerm}
@@ -229,19 +242,24 @@ export default function IncomePage() {
                   className="w-full pl-10 glass-input"
                 />
               </div>
-              
-              <div className="relative">
-                <ArrowUpDown className="absolute left-3 top-3.5 h-4 w-4 text-slate-500" />
-                <select
+
+              <div className="flex flex-row items-center gap-2">
+                <ArrowUpDown className="h-5 w-5 text-slate-500" />
+                <Select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortKey)}
-                  className="pl-10 pr-8 py-3.5 glass-input appearance-none bg-slate-900 font-medium text-xs uppercase tracking-wider"
+                  onValueChange={(value) => setSortBy(value as SortKey)}
                 >
-                  <option value="date-desc">Latest Date</option>
-                  <option value="date-asc">Oldest Date</option>
-                  <option value="amount-desc">Highest Amount</option>
-                  <option value="amount-asc">Lowest Amount</option>
-                </select>
+                  <SelectTrigger className="pl-10 pr-8 py-3.5 glass-input bg-slate-900 font-medium text-xs uppercase tracking-wider">
+                    <SelectValue placeholder="Sort By" />
+                  </SelectTrigger>
+
+                  <SelectContent className="bg-slate-900 border-white/10 backdrop-blur-xl">
+                    <SelectItem value="date-desc">Latest Date</SelectItem>
+                    <SelectItem value="date-asc">Oldest Date</SelectItem>
+                    <SelectItem value="amount-desc">Highest Amount</SelectItem>
+                    <SelectItem value="amount-asc">Lowest Amount</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -288,7 +306,7 @@ export default function IncomePage() {
                         <span className="text-base font-bold text-emerald-400">
                           +{formatCurrency(inc.amount)}
                         </span>
-                        
+
                         <button
                           onClick={() => handleDelete(inc.id)}
                           disabled={isDeleting}
