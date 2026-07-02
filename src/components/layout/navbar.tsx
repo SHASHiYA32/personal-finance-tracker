@@ -15,7 +15,7 @@ import {
   Settings,
   LogOut,
   User,
-  CalendarSearch
+  CalendarSearch,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,7 +25,7 @@ const menuItems = [
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Income', href: '/income', icon: Wallet },
   { name: 'Budget', href: '/budget', icon: PiggyBank },
-  { name: 'Calender', href: '/calender', icon: CalendarSearch },
+  { name: 'Calendar', href: '/calender', icon: CalendarSearch },
   { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -82,6 +82,8 @@ export default function Navbar() {
         return "Budgets";
       case "/analytics":
         return "Visual Analytics";
+      case "/calender":
+        return "Calendar";
       case "/settings":
         return "Settings";
       default:
