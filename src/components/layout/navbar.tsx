@@ -15,7 +15,11 @@ import {
   Settings,
   LogOut,
   User,
+<<<<<<< HEAD
   CalendarSearch,
+=======
+  CalendarSearch
+>>>>>>> 8677df6caa1e94918b8054391ad6733ef2bde158
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -25,7 +29,11 @@ const menuItems = [
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Income', href: '/income', icon: Wallet },
   { name: 'Budget', href: '/budget', icon: PiggyBank },
+<<<<<<< HEAD
   { name: 'Calendar', href: '/calender', icon: CalendarSearch },
+=======
+  { name: 'Calender', href: '/calender', icon: CalendarSearch },
+>>>>>>> 8677df6caa1e94918b8054391ad6733ef2bde158
   { name: 'Analytics', href: '/analytics', icon: LineChart },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
