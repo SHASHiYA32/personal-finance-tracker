@@ -42,7 +42,7 @@ export default function Sidebar() {
       <div className="glass-panel h-full w-full flex flex-col justify-between p-6">
         {/* Brand Header */}
         <div>
-          <div className="flex items-center gap-2 mb-8">
+          <a href='/' className="flex items-center gap-2 mb-8">
             <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
@@ -54,7 +54,7 @@ export default function Sidebar() {
                 Premium Tracking
               </p>
             </div>
-          </div>
+          </a>
 
           {/* Navigation Links */}
           <nav className="space-y-1">

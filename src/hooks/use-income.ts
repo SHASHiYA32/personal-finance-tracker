@@ -21,7 +21,7 @@ export function useIncome() {
         .from('income')
         .select('*')
         .eq('user_id', user.id)
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (month && year) {
         const startDate = new Date(year, month - 1, 1).toISOString();

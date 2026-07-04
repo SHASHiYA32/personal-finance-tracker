@@ -1,5 +1,6 @@
 import Sidebar from '@/components/layout/sidebar';
 import Navbar from '@/components/layout/navbar';
+import { FinanceAssistant } from '@/components/ai/FinanceAssistant';
 
 export default function DashboardLayout({
   children,
@@ -13,6 +14,7 @@ export default function DashboardLayout({
         <Navbar />
         <main className="flex-1 p-6 md:p-8 lg:p-10 pt-2">
           {children}
+          <FinanceAssistant />
         </main>
       </div>
     </div>
