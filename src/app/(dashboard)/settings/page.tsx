@@ -1,56 +1,67 @@
-'use client';
+// app/settings/page.tsx
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { 
-  Sparkles, 
-  User, 
-  Mail, 
-  Calendar, 
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import {
+  Sparkles,
+  User,
+  Mail,
+  Calendar,
   Settings as SettingsIcon,
   LogOut,
   CheckCircle,
-  Bell,
-  Globe
-} from 'lucide-react';
+  Gem
+} from "lucide-react";
+import { PremiumModal } from "@/components/ai/PremiumModal";
 
 export default function SettingsPage() {
   const router = useRouter();
   const supabase = createClient();
 
-  // User details state
+  // Profile fields states mapping exact database schema
   const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [createdDate, setCreatedDate] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
+
+  // Status tracking properties flags
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Preference mock states
-  const [currency, setCurrency] = useState('USD');
-  const [notifications, setNotifications] = useState(true);
+  // Reusable modal state visibility popup parameter
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
 
   useEffect(() => {
     async function getProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      
       if (user) {
         setUserId(user.id);
         setEmail(user.email ?? null);
-        setCreatedDate(user.created_at ? new Date(user.created_at).toLocaleDateString() : null);
+        setCreatedDate(
+          user.created_at
+            ? new Date(user.created_at).toLocaleDateString()
+            : null
+        );
 
-        // Fetch profile
+        // Fetch user metadata matching specific public.profiles column naming rules
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("display_name, avatar_url, premium")
+          .eq("id", user.id)
           .single();
 
-        if (profile?.display_name) {
-          setDisplayName(profile.display_name);
-        } else {
-          setDisplayName(user.email ? user.email.split('@')[0] : '');
+        if (profile) {
+          setDisplayName(profile.display_name || "");
+          setAvatarUrl(profile.avatar_url || "");
+          setIsPremium(!!profile.premium);
         }
       }
     }
@@ -59,26 +70,30 @@ export default function SettingsPage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
+    if (!userId || !email) return;
 
     setSavingProfile(true);
     setProfileSuccess(false);
     setError(null);
 
     try {
+      // Using .upsert() guarantees updates save safely even if a profile row doesn't exist yet
       const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ display_name: displayName })
-        .eq('id', userId);
+        .from("profiles")
+        .upsert({ 
+          id: userId,
+          email: email, // email is marked as NOT NULL in your schema
+          display_name: displayName,
+          avatar_url: avatarUrl,
+          premium: isPremium // retains current premium setting state safely
+        }, { onConflict: 'id' });
 
       if (updateError) throw updateError;
-      setProfileSuccess(true);
       
-      // Clear success indicator after 3 seconds
+      setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 3000);
-      router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Failed to update profile display name.');
+      setError(err.message || "Failed to commit profile updates.");
     } finally {
       setSavingProfile(false);
     }
@@ -86,36 +101,61 @@ export default function SettingsPage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push("/login");
     router.refresh();
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      {/* Header Banner */}
+    <div className="space-y-8 max-w-screen min-h-screen pb-12 text-white">
+      
+      {/* Header Info Block summary */}
       <div className="glass-panel p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-indigo-400 font-semibold text-xs uppercase tracking-wider">
             <Sparkles className="h-4 w-4" />
-            <span>Profile and Customization</span>
+            <span>Profile Identity Customization</span>
           </div>
-          <h3 className="text-xl md:text-2xl font-extrabold text-white mt-1">
+          <h3 className="text-xl md:text-2xl font-extrabold mt-1">
             Account Settings
           </h3>
           <p className="text-slate-400 text-xs mt-0.5">
-            Modify your credentials, configure alerts, and adjust dashboard defaults.
+            Modify identity components visibility indices and check subscription states.
           </p>
         </div>
       </div>
 
+      {/* Subscription Quick View Promotional Card Element */}
+      <div className="p-6 w-full rounded-2xl border border-amber-500/20 bg-amber-950/20 backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 text-amber-500">
+          <div className="flex items-start gap-3">
+            <Gem className="h-5 w-5 mt-0.5 shrink-0" />
+            <div>
+              <h4 className="font-bold text-sm text-white">
+                {isPremium ? "Premium Subscription Active" : "Unlock Financial Intelligence Engine Layers"}
+              </h4>
+              <p className="text-slate-400 text-xs mt-0.5">
+                {isPremium 
+                  ? "Enjoy contextual structural NLP commands conversions on all active assistant pipelines."
+                  : "Access premium automated tracking modules powered directly by deep processing token models."}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsPremiumModalOpen(true)}
+            className="px-6 py-2 border border-amber-500/30 rounded-xl text-white bg-gradient-to-r font-semibold from-amber-500 to-amber-600 cursor-pointer hover:scale-102 transition-all text-xs text-center self-start sm:self-auto"
+          >
+            {isPremium ? "Manage Subscription Plan" : "Upgrade Plan"}
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Card 1: Profile Editing */}
+        {/* Form Identity Card block column 1 */}
         <div className="glass-panel p-6 w-full space-y-4">
           <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
             <User className="h-4.5 w-4.5 text-indigo-400" />
-            <span>Profile Information</span>
+            <span>Identity Presentation</span>
           </h4>
-          <p className="text-[11px] text-slate-400">Configure how you appear on the dashboard</p>
 
           {error && (
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400">
@@ -126,7 +166,7 @@ export default function SettingsPage() {
           {profileSuccess && (
             <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-400 flex items-center gap-2">
               <CheckCircle className="h-4 w-4" />
-              <span>Profile updated successfully!</span>
+              <span>Profile metrics saved correctly!</span>
             </div>
           )}
 
@@ -140,109 +180,70 @@ export default function SettingsPage() {
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full glass-input"
-                placeholder="John Doe"
+                className="w-full glass-input bg-slate-950/40 border-white/10 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white"
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="w-full glass-button-primary"
-            >
-              {savingProfile ? (
-                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <span>Save Changes</span>
-              )}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                Avatar Image Resource Link URL
+              </label>
+              <input
+                type="text"
+                value={avatarUrl}
+                onChange={(e) => setAvatarUrl(e.target.value)}
+                className="w-full glass-input bg-slate-950/40 border-white/10 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white"
+              />
+            </div>
+
+            <button type="submit" disabled={savingProfile} className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 transition font-semibold text-xs rounded-xl tracking-wider uppercase disabled:opacity-50 cursor-pointer">
+              {savingProfile ? "Syncing Fields Data..." : "Update Identity Setup"}
             </button>
           </form>
         </div>
 
-        {/* Card 2: Account Details & Security */}
+        {/* Credentials Static Matrix info card column 2 */}
         <div className="glass-panel p-6 w-full space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
             <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
               <SettingsIcon className="h-4.5 w-4.5 text-pink-400" />
-              <span>Account Credentials</span>
+              <span>Verification Parameters Context</span>
             </h4>
-            <p className="text-[11px] text-slate-400">Read-only verification credentials</p>
 
             <div className="space-y-3.5">
               <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.01] border border-white/[0.03]">
                 <Mail className="h-5 w-5 text-slate-400 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">Email address</p>
-                  <p className="text-xs text-white font-medium mt-1 leading-none">{email}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">Account Mail Address</p>
+                  <p className="text-xs font-medium text-slate-200 mt-1 leading-none">{email}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3.5 p-3 rounded-xl bg-white/[0.01] border border-white/[0.03]">
                 <Calendar className="h-5 w-5 text-slate-400 shrink-0" />
                 <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">Member Since</p>
-                  <p className="text-xs text-white font-medium mt-1 leading-none">{createdDate}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">Member Registration Timestamp</p>
+                  <p className="text-xs font-medium text-slate-200 mt-1 leading-none">{createdDate}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={handleSignOut}
-            className="w-full glass-button-danger border border-red-500/20 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 mt-4"
-          >
-            <LogOut className="h-4.5 w-4.5" />
-            <span>Terminate Current Session</span>
+          <button onClick={handleSignOut} className="w-full py-2.5 rounded-xl border border-red-500/20 hover:bg-red-500/10 text-red-400 transition text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
+            <LogOut className="h-4 w-4" />
+            <span>Terminate Authentication Session</span>
           </button>
         </div>
       </div>
 
-      {/* Card 3: Dashboard Preferences */}
-      <div className="glass-panel p-6 w-full space-y-5">
-        <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
-          <Globe className="h-4.5 w-4.5 text-indigo-400" />
-          <span>Dashboard Preferences</span>
-        </h4>
-        <p className="text-[11px] text-slate-400">Tweak defaults and alert patterns</p>
+      <PremiumModal
+        isOpen={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
+        userId={userId}
+        isPremiumInitial={isPremium}
+        onTierUpdated={(nextState) => setIsPremium(nextState)}
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.01] border border-white/[0.03]">
-            <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-white">Default Currency</p>
-              <p className="text-[10px] text-slate-400 font-medium">Standard formatting index</p>
-            </div>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="glass-input appearance-none py-1.5 px-3 bg-slate-900 font-semibold text-xs text-slate-200"
-            >
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-            </select>
-          </div>
-
-          <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.01] border border-white/[0.03]">
-            <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-white">Budget Alerts</p>
-              <p className="text-[10px] text-slate-400 font-medium">Notify when exceeding 75% limit</p>
-            </div>
-            
-            <button
-              onClick={() => setNotifications(!notifications)}
-              className={`h-6 w-11 rounded-full p-1 cursor-pointer transition-all duration-200 ${
-                notifications ? 'bg-indigo-600' : 'bg-white/10'
-              }`}
-            >
-              <div 
-                className={`h-4 w-4 rounded-full bg-white transition-all duration-200 ${
-                  notifications ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
