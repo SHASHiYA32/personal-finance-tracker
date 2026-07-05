@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Sparkles, Mail, Lock, User, ArrowRight, LockOpen } from "lucide-react";
 import { motion } from "framer-motion";
+import { getURL } from "@/lib/util/url";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -62,8 +63,8 @@ export default function RegisterPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          // Dynamically matches your current environment location
-          redirectTo: `${window.location.origin}/auth/callback`,
+          // Replaced window.location.origin with an environmental dynamic fallback route
+          redirectTo: `${getURL()}auth/callback`,
         },
       });
 
@@ -118,7 +119,6 @@ export default function RegisterPage() {
               <button
                 type="button"
                 disabled
-                // disabled={oauthLoading !== null || loading}
                 onClick={() => handleOAuthRegister("google")}
                 className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-red-600/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"
                 title="not active yet"
@@ -143,7 +143,6 @@ export default function RegisterPage() {
               </button>
               <button
                 type="button"
-                // disabled={oauthLoading !== null || loading}
                 disabled
                 onClick={() => handleOAuthRegister("apple")}
                 className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-red-600/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"

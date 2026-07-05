@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Sparkles, Mail, Lock, ArrowRight, LockOpen } from "lucide-react";
 import { motion } from "framer-motion";
+import { getURL } from "@/lib/util/url";
+
 
 export default function LoginPage() {
   const router = useRouter();
@@ -74,7 +76,8 @@ export default function LoginPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          // Replaced window.location.origin with environmental host detection
+          redirectTo: `${getURL()}auth/callback`,
         },
       });
 
@@ -119,11 +122,10 @@ export default function LoginPage() {
         <div className="grid grid-cols-3 gap-3 mb-6 relative">
           <button
             type="button"
-            // disabled={oauthLoading !== null || loading}
             disabled
             onClick={() => handleOAuthLogin("google")}
             className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-red-600/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"
-            title='not active yet'
+            title="not active yet"
           >
             {oauthLoading === "google" ? (
               <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -145,11 +147,10 @@ export default function LoginPage() {
           </button>
           <button
             type="button"
-            // disabled={oauthLoading !== null || loading}
             disabled
             onClick={() => handleOAuthLogin("apple")}
             className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-red-600/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"
-            title='not active yet'
+            title="not active yet"
           >
             {oauthLoading === "apple" ? (
               <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -157,7 +158,9 @@ export default function LoginPage() {
               <span>Apple</span>
             )}
           </button>
-          <span className="text-center col-span-3 text-xs text-muted-foreground">Google and Apple login coming soon use facebook login instead</span>
+          <span className="text-center col-span-3 text-xs text-muted-foreground">
+            Google and Apple login coming soon use facebook login instead
+          </span>
         </div>
 
         {/* Divider Line */}
