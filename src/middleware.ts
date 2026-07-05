@@ -34,8 +34,11 @@ export async function middleware(request: NextRequest) {
   // Authentication routing logic
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || 
                      request.nextUrl.pathname.startsWith('/register');
+                     
+  // CRUCIAL FOR OAUTH: Don't intercept requests to the auth callback handler paths
+  const isAuthCallback = request.nextUrl.pathname.startsWith('/auth');
 
-  if (!user && !isAuthPage) {
+  if (!user && !isAuthPage && !isAuthCallback) {
     // If not logged in and trying to access dashboard routes, redirect to login
     return NextResponse.redirect(new URL('/login', request.url));
   }

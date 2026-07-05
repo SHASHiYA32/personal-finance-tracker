@@ -142,7 +142,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={() => setIsPremiumModalOpen(true)}
-            className="px-6 py-2 border border-amber-500/30 rounded-xl text-white bg-gradient-to-r font-semibold from-amber-500 to-amber-600 cursor-pointer hover:scale-102 transition-all text-xs text-center self-start sm:self-auto"
+            className="px-6 py-2 border border-amber-500/30 rounded-xl text-white bg-gradient-to-r font-semibold from-amber-400 via-amber-500 to-amber-400 cursor-pointer hover:scale-102 transition-all text-xs text-center self-start sm:self-auto"
           >
             {isPremium ? "Manage Subscription Plan" : "Upgrade Plan"}
           </button>

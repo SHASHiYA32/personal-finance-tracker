@@ -12,6 +12,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   AlertCircle,
+  CircleCheck,
+  CirclePlus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -21,6 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import AddCategory from "@/components/category/add-category-form";
+import { createClient } from "@/lib/supabase/client";
 
 const CATEGORIES = [
   "Food",
@@ -33,6 +37,8 @@ const CATEGORIES = [
 ];
 
 export default function BudgetPage() {
+  const supabase = createClient();
+
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
@@ -50,6 +56,23 @@ export default function BudgetPage() {
   const [limit, setLimit] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function getProfile() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        setUserId(user.id);
+        console.log("User Found: ", user);
+      }
+    }
+    getProfile();
+  }, [supabase]);
 
   useEffect(() => {
     fetchBudgets(currentMonth, currentYear);
@@ -219,9 +242,24 @@ export default function BudgetPage() {
         {/* Budget lists & progress bars */}
         <div className="lg:col-span-2 space-y-6">
           <div className="glass-panel p-6 w-full space-y-6">
-            <h4 className="text-sm font-bold text-slate-200">
-              Budget Progress Tracker
-            </h4>
+            <div className="w-full flex flex-row justify-between items-center">
+              <h4 className="text-sm font-bold text-slate-200">
+                Budget Progress Tracker
+              </h4>
+              <button
+                onClick={() => setIsPremiumModalOpen(true)}
+                className="px-4 glass-button-primary text-sm flex flex-row justify-between items-center gap-2"
+              >
+                <CirclePlus className="h-4 w-4" />
+                <span>Add Category</span>
+              </button>
+
+              <AddCategory
+                isOpen={isPremiumModalOpen}
+                onClose={() => setIsPremiumModalOpen(false)}
+                userId={userId}
+              />
+            </div>
 
             <div className="space-y-6">
               {loading && budgets.length === 0 ? (

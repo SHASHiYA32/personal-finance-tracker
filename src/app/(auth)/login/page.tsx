@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,9 +13,34 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewPass, setViewPass] = useState(false);
 
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        router.push("/");
+        router.refresh();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router, supabase]);
+
+  useEffect(() => {
+    if (window.location.hash === "#_=_") {
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+  }, []);
+
+  // Email Sign In
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -35,6 +60,28 @@ export default function LoginPage() {
       setError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // OAuth Sign In Handler
+  const handleOAuthLogin = async (
+    provider: "google" | "facebook" | "apple",
+  ) => {
+    setOauthLoading(provider);
+    setError(null);
+
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (oauthError) throw oauthError;
+    } catch (err: any) {
+      setError(err.message || `Failed to sign in with ${provider}`);
+      setOauthLoading(null);
     }
   };
 
@@ -67,6 +114,60 @@ export default function LoginPage() {
             {error}
           </div>
         )}
+
+        {/* OAuth Buttons Section */}
+        <div className="grid grid-cols-3 gap-3 mb-6 relative">
+          <button
+            type="button"
+            // disabled={oauthLoading !== null || loading}
+            disabled
+            onClick={() => handleOAuthLogin("google")}
+            className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-red-600/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"
+            title='not active yet'
+          >
+            {oauthLoading === "google" ? (
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <span>Google</span>
+            )}
+          </button>
+          <button
+            type="button"
+            disabled={oauthLoading !== null || loading}
+            onClick={() => handleOAuthLogin("facebook")}
+            className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"
+          >
+            {oauthLoading === "facebook" ? (
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <span>Facebook</span>
+            )}
+          </button>
+          <button
+            type="button"
+            // disabled={oauthLoading !== null || loading}
+            disabled
+            onClick={() => handleOAuthLogin("apple")}
+            className="flex items-center justify-center py-2.5 px-4 rounded-xl bg-red-600/5 hover:bg-white/10 border border-white/10 text-white transition-all text-xs font-semibold"
+            title='not active yet'
+          >
+            {oauthLoading === "apple" ? (
+              <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <span>Apple</span>
+            )}
+          </button>
+          <span className="text-center col-span-3 text-xs text-muted-foreground">Google and Apple login coming soon use facebook login instead</span>
+        </div>
+
+        {/* Divider Line */}
+        <div className="relative flex py-2 items-center mb-4">
+          <div className="flex-grow border-t border-white/5"></div>
+          <span className="flex-shrink mx-4 text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+            Or continue with
+          </span>
+          <div className="flex-grow border-t border-white/5"></div>
+        </div>
 
         <form onSubmit={handleLogin} className="space-y-4 relative">
           <div>
@@ -118,7 +219,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || oauthLoading !== null}
             className="w-full glass-button-primary mt-4"
           >
             {loading ? (
