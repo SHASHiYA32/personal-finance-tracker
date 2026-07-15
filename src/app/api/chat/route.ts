@@ -16,22 +16,32 @@ CRITICAL RULES:
 
 export async function POST(req: Request) {
   try {
-    // Expecting full messages history array from the client side now
     const { messages } = await req.json();
-    
-    // Fallback if formatting was sent incorrectly
     const activeMessages = Array.isArray(messages) ? messages : [];
-    const latestPrompt = activeMessages[activeMessages.length - 1]?.text || "";
+
+    // Safely parse history whether coming as standard content fields or text fallbacks
+    const sdkMessages = activeMessages.map((m: any) => ({
+      role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
+      content: m.content || m.text || "",
+    }));
+
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.LLM_API_KEY;
+
+    if (!apiKey) {
+      return Response.json({
+        replyText: "❌ Server Configuration Error: Gemini API key missing from environment settings.",
+        toolCall: null
+      });
+    }
 
     const googleProvider = createGoogle({
-      apiKey: process.env.LLM_API_KEY,
+      apiKey: apiKey,
     });
 
     const result = await generateObject({
       model: googleProvider("gemini-2.5-flash"),
       system: SYSTEM_PROMPT,
-      // Pass previous turns along with the prompt so the model retains conversation context
-      prompt: `Conversation history:\n${activeMessages.map(m => `${m.role}: ${m.text}`).join('\n')}\n\nLatest User Input: ${latestPrompt}`,
+      messages: sdkMessages,
       schema: z.object({
         isOffTopic: z.boolean().describe("True if user asked unrelated things completely separate from financial data operations"),
         replyText: z.string().describe("The conversational response summary"),
@@ -42,19 +52,18 @@ export async function POST(req: Request) {
               title: z.string().optional().describe("The name or descriptive reason for the expenditure"),
               source: z.string().optional().describe("The source of income"),
               amount: z.number().optional().describe("The monetary value"),
-              // Locked to the explicit options visible in image_bc2361.png
               category: z.enum([
-                "Food", 
-                "Rent/Housing", 
-                "Transport", 
-                "Utilities", 
-                "Entertainment", 
-                "Shopping", 
+                "Food",
+                "Rent/Housing",
+                "Transport",
+                "Utilities",
+                "Entertainment",
+                "Shopping",
                 "Other"
-              ]).optional().describe("The specific broader category group mapped to the available dropdown selections"),
-              itemType: z.enum(["expense", "income", "budget"]).optional().describe("The classification targeted for removal or display listing"),
-              itemId: z.string().optional().describe("The database record identifier string if specified for removal"),
-              descriptionText: z.string().optional().describe("Brief textual description summary"),
+              ]).optional().describe("The category group classification name"),
+              itemType: z.enum(["expense", "income", "budget"]).optional().describe("The classification targeted"),
+              itemId: z.string().optional().describe("The database identifier"),
+              descriptionText: z.string().optional().describe("Brief text summary"),
             }),
           })
           .optional(),
@@ -71,6 +80,9 @@ export async function POST(req: Request) {
     return Response.json(result.object);
   } catch (error: any) {
     console.error("AI ROUTE ERROR LOG:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ 
+      replyText: `❌ Request Processing Error: ${error.message || "Unknown internal issue"}`,
+      toolCall: null 
+    });
   }
 }

@@ -1,20 +1,44 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useBudget } from "@/hooks/use-budget";
 import ExpenseForm from "@/components/expenses/expense-form";
 import ExpenseTable from "@/components/expenses/expense-table";
 import { Sparkles, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/lib/helpers/currency";
+import { createClient } from "@/lib/supabase/client";
+import { Category } from "@/types/category";
 
 export default function ExpensesPage() {
+  const supabase = createClient();
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
+  
   const { expenses, loading, fetchExpenses, addExpense, deleteExpense } =
     useExpenses();
+  const { budgets, fetchBudgets } = useBudget();
 
-  const { budgets, fetchBudgets, loading: budgetLoading } = useBudget();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  // Fetch the custom database items on initial load
+  useEffect(() => {
+    async function getCategories() {
+      setCategoriesLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("category", { ascending: true });
+        if (data) setCategories(data);
+      }
+      setCategoriesLoading(false);
+    }
+    getCategories();
+  }, [supabase]);
 
   useEffect(() => {
     fetchExpenses(currentMonth, currentYear);
@@ -113,12 +137,17 @@ export default function ExpensesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-1">
-          <ExpenseForm onSubmit={handleAddExpense} />
+          <ExpenseForm 
+            onSubmit={handleAddExpense} 
+            categories={categories}
+            categoriesLoading={categoriesLoading}
+          />
         </div>
 
         <div className="lg:col-span-2">
           <ExpenseTable
             expenses={expenses}
+            categories={categories}
             onDelete={deleteExpense}
             loading={loading}
           />

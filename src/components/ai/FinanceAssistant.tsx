@@ -2,7 +2,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { MessageSquare, X, DollarSign, Trash2, Calendar, User, Bot } from "lucide-react";
+import {
+  MessageSquare,
+  X,
+  DollarSign,
+  Trash2,
+  Calendar,
+  User,
+  Bot,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -15,6 +23,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/helpers/currency";
 import { formatDate } from "@/lib/helpers/date";
 import { PremiumModal } from "./PremiumModal";
+import { Category } from "@/types/category";
 
 interface PendingDelete {
   id?: string;
@@ -32,17 +41,20 @@ const SUGGESTION_PROMPTS = [
   { label: "📊 Recent Expenses", text: "show me latest 3 expenses" },
   { label: "💰 Recent Income", text: "show recent income entries" },
   { label: "🍔 Spent 15 on Food", text: "I spent 15 on Food for lunch" },
-  { label: "🏠 Spent 1200 on Rent", text: "I spent 1200 on Rent/Housing" },
+  { label: "🏠 Spent 1200 on Rent", text: "I spent 1200 on Rent" },
 ];
 
 export function FinanceAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
+    null,
+  );
   const [userId, setUserId] = useState<string | null>(null);
-  const [isPremium, setIsPremium] = useState(false); // Track premium database flag
-  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false); // Modal control state
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [loadingUser, setLoadingUser] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,6 +69,44 @@ export function FinanceAssistant() {
     fetchIncomes();
   }, [fetchExpenses, fetchIncomes]);
 
+  // Fetch users custom database categories to map AI string tokens to dynamic ID indexes
+  useEffect(() => {
+    async function getCategories() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id);
+        if (data) setCategories(data);
+      }
+    }
+    getCategories();
+  }, [supabase]);
+
+  // Resolves semantic AI text matching (e.g. "food") to numerical primary DB IDs ("4")
+  const mapCategoryNameToId = (categoryName: string): string => {
+    const cleanName = categoryName.trim().toLowerCase();
+    const match = categories.find((c) => {
+      const targetName = c.category.toLowerCase();
+      return targetName.includes(cleanName) || cleanName.includes(targetName);
+    });
+    if (match) return String(match.id);
+    const otherMatch = categories.find(
+      (c) => c.category.toLowerCase() === "other",
+    );
+    return otherMatch ? String(otherMatch.id) : categoryName;
+  };
+
+  const getCategoryDisplayName = (catIdOrName: string) => {
+    const matched = categories.find(
+      (c) => String(c.id) === String(catIdOrName),
+    );
+    return matched ? matched.category : catIdOrName;
+  };
+
   useEffect(() => {
     async function getUserDetails() {
       try {
@@ -66,7 +116,6 @@ export function FinanceAssistant() {
         if (user) {
           setUserId(user.id);
 
-          // Fetch explicit premium flag status directly from public.profiles table schema
           const { data: profile } = await supabase
             .from("profiles")
             .select("premium")
@@ -81,14 +130,14 @@ export function FinanceAssistant() {
             user.user_metadata?.name ||
             user.email?.split("@")[0] ||
             "there";
-          
+
           setMessages([
             {
               role: "assistant",
               text: `Hello ${name}! 👋 I'm your AI budget co-pilot. ${
-                premiumState 
+                premiumState
                   ? 'You can add transactions or type "show recent expenses" to inspect records inline!'
-                  : 'Upgrade to our Premium Plan to unlock complete conversational budgeting automation layers!'
+                  : "Upgrade to our Premium Plan to unlock complete conversational budgeting automation layers!"
               }`,
             },
           ]);
@@ -124,16 +173,12 @@ export function FinanceAssistant() {
       setMessages((prev) => [
         ...prev,
         { role: "user", text: userMessage },
-        { 
-          role: "assistant", 
-          text: "🔒 You are not a premium user. The conversational AI Assistant dashboard capabilities require an active Premium Membership tier." 
-        }
+        {
+          role: "assistant",
+          text: "🔒 The conversational AI assistant dashboard capabilities require an active Premium Membership tier.",
+        },
       ]);
-      
-      // Delay opening popup modal slightly so the user reads the restriction text reply first
-      setTimeout(() => {
-        setIsPremiumModalOpen(true);
-      }, 800);
+      setTimeout(() => setIsPremiumModalOpen(true), 800);
       return;
     }
 
@@ -141,18 +186,22 @@ export function FinanceAssistant() {
       ...messages,
       { role: "user" as const, text: userMessage },
     ];
-
     setMessages(updatedMessages);
     setIsSubmitting(true);
 
     try {
+      const operationalPayload = updatedMessages.map((m) => ({
+        role: m.role,
+        content: m.text,
+      }));
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: operationalPayload }),
       });
-      const data = await response.json();
 
+      const data = await response.json();
       let customListTarget: "expense" | "income" | null = null;
 
       if (data.toolCall) {
@@ -162,10 +211,14 @@ export function FinanceAssistant() {
           customListTarget = args.itemType === "income" ? "income" : "expense";
         } else if (name === "addExpense") {
           const displayTitle = args.title || "Untitled Expense";
+          const resolvedCategoryId = mapCategoryNameToId(
+            args.category || "Other",
+          );
+
           await addExpense({
             title: displayTitle,
             amount: args.amount || 0,
-            category: args.category || "Other",
+            category: resolvedCategoryId,
             date: args.date || new Date().toISOString().split("T")[0],
             note: args.note,
           });
@@ -199,7 +252,10 @@ export function FinanceAssistant() {
       console.error(err);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", text: "❌ System error parsing chat request." },
+        {
+          role: "assistant",
+          text: "❌ System communication link error encountered.",
+        },
       ]);
     } finally {
       setIsSubmitting(false);
@@ -216,7 +272,6 @@ export function FinanceAssistant() {
       } else if (pendingDelete.type === "budget" && pendingDelete.id) {
         await deleteBudget(pendingDelete.id);
       }
-
       setMessages((prev) => [
         ...prev,
         {
@@ -241,81 +296,95 @@ export function FinanceAssistant() {
       <div className="fixed bottom-6 right-6 z-50">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger>
-            <div
-              className="flex h-12 w-12 cursor-pointer items-center justify-center border-t-2 border-white/20 rounded-full bg-blue-600/70 text-white shadow-2xl hover:bg-blue-700/70 transition-transform active:scale-95 duration-200"
-              aria-label="Open AI Assistant"
-            >
-              {isOpen ? <X className="h-5 w-5" /> : <MessageSquare className="h-5 w-5" />}
+            <div className="flex h-12 w-12 cursor-pointer items-center justify-center border-t-2 border-white/20 rounded-full bg-blue-600/70 text-white shadow-2xl hover:bg-blue-700/70 transition-transform active:scale-95 duration-200">
+              {isOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <MessageSquare className="h-5 w-5" />
+              )}
             </div>
           </PopoverTrigger>
-
           <PopoverContent
             side="top"
             align="end"
             sideOffset={16}
             className="w-96 h-[540px] p-0 flex flex-col border border-white/10 rounded-2xl bg-slate-900/75 backdrop-blur-xl shadow-2xl overflow-hidden text-white"
           >
-            {/* Header */}
             <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
                 <DollarSign className="h-4 w-4 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold tracking-wide">Finance Pilot</h3>
+                <h3 className="text-sm font-semibold tracking-wide">
+                  Finance Pilot
+                </h3>
                 <p className="text-[11px] text-gray-400 flex items-center gap-1">
-                  <span className={`h-1.5 w-1.5 rounded-full ${isPremium ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${isPremium ? "bg-emerald-500" : "bg-amber-500"} animate-pulse`}
+                  />
                   {isPremium ? "Live Client Syncing" : "Base Account Tier"}
                 </p>
               </div>
             </div>
 
-            {/* Message Feed Wrapper */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 style-scrollbar">
               {messages.map((m, i) => (
                 <div
                   key={i}
-                  className={`flex gap-3 items-start max-w-[90%] ${
-                    m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
-                  }`}
+                  className={`flex gap-3 items-start max-w-[90%] ${m.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"}`}
                 >
                   <div
-                    className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 border text-[10px] ${
-                      m.role === "user"
-                        ? "bg-blue-500/10 border-blue-500/30 text-blue-400"
-                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                    }`}
+                    className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 border text-[10px] ${m.role === "user" ? "bg-blue-500/10 border-blue-500/30 text-blue-400" : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"}`}
                   >
-                    {m.role === "user" ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
+                    {m.role === "user" ? (
+                      <User className="h-3.5 w-3.5" />
+                    ) : (
+                      <Bot className="h-3.5 w-3.5" />
+                    )}
                   </div>
-
                   <div className="space-y-2 flex-1 min-w-0">
                     <div
-                      className={`p-3 rounded-2xl text-sm border shadow-sm ${
-                        m.role === "user"
-                          ? "bg-blue-600 border-blue-500/50 text-white rounded-tr-none"
-                          : "bg-white/5 border-white/5 text-gray-100 rounded-tl-none"
-                      }`}
+                      className={`p-3 rounded-2xl text-sm border shadow-sm ${m.role === "user" ? "bg-blue-600 border-blue-500/50 text-white rounded-tr-none" : "bg-white/5 border-white/5 text-gray-100 rounded-tl-none"}`}
                     >
                       {m.text}
                     </div>
 
-                    {/* Render custom lists if user is premium */}
                     {isPremium && m.renderCustomList === "expense" && (
                       <div className="w-full space-y-1.5 animate-fadeIn">
                         <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-1">
-                          Recent Expenses (Latest 3)
+                          Recent Expenses
                         </p>
                         {expenses.slice(0, 3).map((item) => (
-                          <div key={item.id} className="flex items-center justify-between p-2.5 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm group hover:bg-white/10 transition">
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between p-2.5 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm group hover:bg-white/10 transition"
+                          >
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-white truncate">{item.title}</p>
+                              <p className="text-xs font-medium text-white truncate">
+                                {item.title}
+                              </p>
                               <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                                <Calendar className="h-2.5 w-2.5" /> {formatDate(item.date)} • <span className="capitalize">{item.category}</span>
+                                <Calendar className="h-2.5 w-2.5" />{" "}
+                                {formatDate(item.date)} •{" "}
+                                <span>
+                                  {getCategoryDisplayName(item.category)}
+                                </span>
                               </p>
                             </div>
                             <div className="flex items-center gap-2 ml-3">
-                              <span className="text-xs font-semibold text-red-400">{formatCurrency(item.amount)}</span>
-                              <button onClick={() => setPendingDelete({ id: item.id, type: "expense", description: item.title })} className="p-1.5 rounded-md hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition">
+                              <span className="text-xs font-semibold text-red-400">
+                                {formatCurrency(item.amount)}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setPendingDelete({
+                                    id: item.id,
+                                    type: "expense",
+                                    description: item.title,
+                                  })
+                                }
+                                className="p-1.5 rounded-md hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition"
+                              >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -326,16 +395,37 @@ export function FinanceAssistant() {
 
                     {isPremium && m.renderCustomList === "income" && (
                       <div className="w-full space-y-1.5 animate-fadeIn">
-                        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-1">Recent Income Entries</p>
+                        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-1">
+                          Recent Income Entries
+                        </p>
                         {incomes.slice(0, 3).map((item) => (
-                          <div key={item.id} className="flex items-center justify-between p-2.5 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition">
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between p-2.5 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm hover:bg-white/10 transition"
+                          >
                             <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-white truncate">{item.source}</p>
-                              <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5"><Calendar className="h-2.5 w-2.5" /> {formatDate(item.date)}</p>
+                              <p className="text-xs font-medium text-white truncate">
+                                {item.source}
+                              </p>
+                              <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+                                <Calendar className="h-2.5 w-2.5" />{" "}
+                                {formatDate(item.date)}
+                              </p>
                             </div>
                             <div className="flex items-center gap-2 ml-3">
-                              <span className="text-xs font-semibold text-emerald-400">{formatCurrency(item.amount)}</span>
-                              <button onClick={() => setPendingDelete({ id: item.id, type: "income", description: item.source })} className="p-1.5 rounded-md hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition">
+                              <span className="text-xs font-semibold text-emerald-400">
+                                {formatCurrency(item.amount)}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  setPendingDelete({
+                                    id: item.id,
+                                    type: "income",
+                                    description: item.source,
+                                  })
+                                }
+                                className="p-1.5 rounded-md hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition"
+                              >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </button>
                             </div>
@@ -362,19 +452,35 @@ export function FinanceAssistant() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Deletion Confirmation Overlays */}
             {pendingDelete && (
               <div className="mx-4 mb-4 p-4 rounded-xl border border-red-500/30 bg-red-950/50 backdrop-blur-md text-xs space-y-2 animate-fadeIn">
-                <p className="font-bold text-red-400 uppercase tracking-wider text-[10px]">Action Required</p>
-                <p className="text-gray-300">Are you sure you want to delete <span className="text-white font-medium">"{pendingDelete.description}"</span>?</p>
+                <p className="font-bold text-red-400 uppercase tracking-wider text-[10px]">
+                  Action Required
+                </p>
+                <p className="text-gray-300">
+                  Are you sure you want to delete{" "}
+                  <span className="text-white font-medium">
+                    "{pendingDelete.description}"
+                  </span>
+                  ?
+                </p>
                 <div className="flex gap-2 pt-1">
-                  <button onClick={confirmDeletion} className="bg-red-600 hover:bg-red-700 transition px-3 py-1.5 rounded-md font-semibold text-white">Yes, Remove Item</button>
-                  <button onClick={() => setPendingDelete(null)} className="bg-white/10 hover:bg-white/15 transition px-3 py-1.5 rounded-md font-medium text-gray-300">Cancel</button>
+                  <button
+                    onClick={confirmDeletion}
+                    className="bg-red-600 hover:bg-red-700 transition px-3 py-1.5 rounded-md font-semibold text-white"
+                  >
+                    Yes, Remove Item
+                  </button>
+                  <button
+                    onClick={() => setPendingDelete(null)}
+                    className="bg-white/10 hover:bg-white/15 transition px-3 py-1.5 rounded-md font-medium text-gray-300"
+                  >
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Bottom Form Box */}
             <div className="border-t border-white/10 bg-white/5 p-4 space-y-3">
               {!input.trim() && !isSubmitting && (
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 style-scrollbar mask-gradient -mx-1 px-1">
@@ -389,13 +495,16 @@ export function FinanceAssistant() {
                   ))}
                 </div>
               )}
-
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isPremium ? "Type something or use a shortcut..." : "Upgrade to unlock AI Budget Pilot..."}
+                  placeholder={
+                    isPremium
+                      ? "Type something or use a shortcut..."
+                      : "Upgrade to unlock AI Budget Pilot..."
+                  }
                   className="flex-1 min-w-0 border border-white/10 rounded-xl bg-black/40 px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-500"
                   onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                   disabled={isSubmitting}
@@ -409,11 +518,9 @@ export function FinanceAssistant() {
                 </button>
               </div>
             </div>
-
           </PopoverContent>
         </Popover>
       </div>
-
       <PremiumModal
         isOpen={isPremiumModalOpen}
         onClose={() => setIsPremiumModalOpen(false)}
@@ -423,7 +530,10 @@ export function FinanceAssistant() {
           setIsPremium(nextState);
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", text: "💎 Premium subscription activated successfully! You can now use all conversational AI co-pilot capabilities." }
+            {
+              role: "assistant",
+              text: "💎 Premium subscription activated successfully! You can now use all conversational AI co-pilot capabilities.",
+            },
           ]);
         }}
       />

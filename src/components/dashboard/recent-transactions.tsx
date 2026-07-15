@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ArrowUpRight, 
   ArrowDownLeft, 
@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/helpers/currency';
 import { formatDate } from '@/lib/helpers/date';
+import { createClient } from '@/lib/supabase/client';
+import { Category } from '@/types/category';
 
 export interface UnifiedTransaction {
   id: string;
@@ -24,15 +26,46 @@ interface RecentTransactionsProps {
   transactions: UnifiedTransaction[];
   onDelete: (id: string, type: 'income' | 'expense') => Promise<void>;
   loading?: boolean;
+  categories?: Category[]; // Optional prop if parent already has categories
 }
 
 export default function RecentTransactions({
   transactions,
   onDelete,
   loading = false,
+  categories: initialCategories,
 }: RecentTransactionsProps) {
+  const supabase = createClient();
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>(initialCategories || []);
+
+  // Fetch custom categories to resolve numerical database IDs to text names
+  useEffect(() => {
+    if (initialCategories) {
+      setCategories(initialCategories);
+      return;
+    }
+
+    async function getCategories() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id);
+        if (data) setCategories(data);
+      }
+    }
+    getCategories();
+  }, [supabase, initialCategories]);
+
+  // Helper to resolve raw category ID to text
+  const getCategoryName = (catId: string, type: 'income' | 'expense') => {
+    if (type === 'income') return 'Income';
+    const matched = categories.find((c) => String(c.id) === String(catId));
+    return matched ? matched.category : 'Other';
+  };
 
   const filteredTransactions = transactions.filter((t) => {
     if (filter === 'all') return true;
@@ -113,7 +146,7 @@ export default function RecentTransactions({
                     </p>
                     <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-400">
                       <span className="font-medium text-slate-500 uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
-                        {tx.category}
+                        {getCategoryName(tx.category, tx.type)}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3 text-slate-500" />

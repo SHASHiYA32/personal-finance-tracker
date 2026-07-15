@@ -5,6 +5,8 @@ import { useExpenses } from "@/hooks/use-expenses";
 import { useIncome } from "@/hooks/use-income";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/helpers/currency";
+import { createClient } from "@/lib/supabase/client";
+import { Category } from "@/types/category";
 import {
   Select,
   SelectContent,
@@ -17,6 +19,7 @@ import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
 type FilterType = "all" | "income" | "expense";
 
 export default function ExpenseCalendar() {
+  const supabase = createClient();
   const { expenses, fetchExpenses } = useExpenses();
   const { incomes, fetchIncomes } = useIncome();
 
@@ -28,10 +31,31 @@ export default function ExpenseCalendar() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(today);
   const [filter, setFilter] = useState<FilterType>("all");
 
+  const [categories, setCategories] = useState<Category[]>([]);
+
   useEffect(() => {
     fetchExpenses(currentMonth + 1, currentYear);
     fetchIncomes(currentMonth + 1, currentYear);
   }, [currentMonth, currentYear, fetchExpenses, fetchIncomes]);
+
+  useEffect(() => {
+    async function getCategories() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id);
+        if (data) setCategories(data);
+      }
+    }
+    getCategories();
+  }, [supabase]);
+
+  const getCategoryName = (catId: string) => {
+    const matched = categories.find((c) => String(c.id) === String(catId));
+    return matched ? matched.category : "Other";
+  };
 
   const expenseMap = useMemo(() => {
     const map: Record<string, any[]> = {};
@@ -159,14 +183,12 @@ export default function ExpenseCalendar() {
         </div>
       </div>
 
-      {/* RIGHT: DETAILS */}
       <div className="glass-panel p-4 lg:col-span-2">
         <div className="flex flex-row justify-between">
           <h3 className="text-white font-bold mb-2">
             {selectedDate?.toDateString()}
           </h3>
 
-          {/* FIXED SELECT */}
           <div className="flex flex-row items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
 
@@ -201,12 +223,10 @@ export default function ExpenseCalendar() {
           </span>
         </p>
 
-        {/* LIST */}
         {filteredExpenses.length === 0 && filteredIncome.length === 0 ? (
           <p className="text-sm text-slate-500">No transactions</p>
         ) : (
           <div className="space-y-2">
-            {/* INCOME */}
             {filteredIncome.map((inc) => (
               <div
                 key={inc.id}
@@ -221,7 +241,6 @@ export default function ExpenseCalendar() {
               </div>
             ))}
 
-            {/* EXPENSE */}
             {filteredExpenses.map((exp) => (
               <div
                 key={exp.id}
@@ -234,8 +253,8 @@ export default function ExpenseCalendar() {
                   </p>
                 </div>
 
-                <p className="text-[10px] text-slate-400 uppercase">
-                  {exp.category}
+                <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider">
+                  {getCategoryName(exp.category)}
                 </p>
               </div>
             ))}

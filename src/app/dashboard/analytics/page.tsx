@@ -8,7 +8,6 @@ import {
   Sparkles, 
   BarChart2, 
   LineChart as LineIcon,
-  TrendingUp, 
   DollarSign 
 } from 'lucide-react';
 import {
@@ -23,18 +22,11 @@ import {
   LineChart,
   Line
 } from 'recharts';
-
-const CATEGORIES = [
-  'Food',
-  'Rent/Housing',
-  'Transport',
-  'Utilities',
-  'Entertainment',
-  'Shopping',
-  'Other',
-];
+import { createClient } from '@/lib/supabase/client';
+import { Category } from '@/types/category';
 
 export default function AnalyticsPage() {
+  const supabase = createClient();
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
   const [mounted, setMounted] = useState(false);
@@ -42,11 +34,32 @@ export default function AnalyticsPage() {
   const { expenses, fetchExpenses, loading: expensesLoading } = useExpenses();
   const { budgets, fetchBudgets, loading: budgetsLoading } = useBudget();
 
+  // Dynamic state for custom categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
   useEffect(() => {
     setMounted(true);
     fetchExpenses(currentMonth, currentYear);
     fetchBudgets(currentMonth, currentYear);
   }, [currentMonth, currentYear, fetchExpenses, fetchBudgets]);
+
+  // Fetch categories from the database
+  useEffect(() => {
+    async function getCategories() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("category", { ascending: true });
+        if (data) setCategories(data);
+      }
+      setCategoriesLoading(false);
+    }
+    getCategories();
+  }, [supabase]);
 
   if (!mounted) {
     return (
@@ -56,19 +69,27 @@ export default function AnalyticsPage() {
     );
   }
 
-  // Aggregate actual spend per category
+  // Helper to translate category ID to name
+  const getCategoryName = (catId: string) => {
+    const matched = categories.find((c) => String(c.id) === String(catId));
+    return matched ? matched.category : 'Other';
+  };
+
+  // Aggregate actual spend per category (mapped from ID to string category name)
   const categorySpending = expenses.reduce((acc, exp) => {
-    acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
+    const categoryName = getCategoryName(exp.category);
+    acc[categoryName] = (acc[categoryName] || 0) + Number(exp.amount);
     return acc;
   }, {} as Record<string, number>);
 
-  // 1. Budget vs. Spend Comparison Data
-  const budgetVsSpendData = CATEGORIES.map((cat) => {
-    const budgetItem = budgets.find((b) => b.category === cat);
+  // 1. Budget vs. Spend Comparison Data using dynamic categories
+  const budgetVsSpendData = categories.map((catItem) => {
+    const catName = catItem.category;
+    const budgetItem = budgets.find((b) => b.category === catName);
     return {
-      name: cat,
+      name: catName,
       Budget: budgetItem ? Number(budgetItem.monthly_limit) : 0,
-      Actual: categorySpending[cat] || 0,
+      Actual: categorySpending[catName] || 0,
     };
   });
 
@@ -115,7 +136,7 @@ export default function AnalyticsPage() {
           ))}
         </div>
       );
-    };
+    }
     return null;
   };
 
@@ -134,11 +155,11 @@ export default function AnalyticsPage() {
           ))}
         </div>
       );
-    };
+    }
     return null;
   };
 
-  const loading = expensesLoading || budgetsLoading;
+  const loading = expensesLoading || budgetsLoading || categoriesLoading;
 
   return (
     <div className="space-y-8">
@@ -186,7 +207,11 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="h-[300px] w-full mt-4">
-            {expenses.length === 0 ? (
+            {loading && expenses.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="h-8 w-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              </div>
+            ) : expenses.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-500">
                 No transactions recorded for trend mapping.
               </div>
@@ -217,7 +242,11 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="h-[300px] w-full mt-4">
-            {expenses.length === 0 && budgets.length === 0 ? (
+            {loading && expenses.length === 0 && budgets.length === 0 ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="h-8 w-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+              </div>
+            ) : expenses.length === 0 && budgets.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-500">
                 No budget entries or expense logs found.
               </div>

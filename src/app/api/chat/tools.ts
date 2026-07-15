@@ -6,7 +6,7 @@ export const financeTools = {
       properties: {
         title: { type: "string", description: "The item or reason for the expenditure (e.g., 'bun')" },
         amount: { type: "number", description: "The cost/amount spent" },
-        category: { type: "string", description: "The classification (e.g., 'Food', 'Transport')" },
+        category: { type: "string", description: "The category classification (e.g., 'Food', 'Rent', 'Transport', 'Utilities', 'Entertainment', 'Shopping', 'Other')" },
         date: { type: "string", description: "ISO date string or YYYY-MM-DD. Defaults to today's date if not specified." },
         note: { type: "string", description: "Any additional details mentioned." }
       },
