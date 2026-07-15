@@ -9,29 +9,23 @@ import {
   Plus,
   Users,
   UserPlus,
-  Calendar,
   DollarSign,
   ArrowUpRight,
   ArrowDownRight,
-  ChevronRight,
   Flame,
-  PlusCircle,
   Trophy,
   Activity,
-  ArrowRight,
   UserMinus,
   BarChart3,
   CircleCheckIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner"; // Sonner direct import
+import { toast } from "sonner";
 import {
   createVault,
-  getUserVaults,
   joinVault,
   Vault,
-  VaultMember,
 } from "@/types/vaults";
 
 export default function FamilyVaultPage() {
@@ -41,8 +35,6 @@ export default function FamilyVaultPage() {
   const [activeVault, setActiveVault] = useState<
     (Vault & { vault_members: any[] }) | null
   >(null);
-
-  // Creation/Join form states
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [vaultName, setVaultName] = useState("");
@@ -50,8 +42,6 @@ export default function FamilyVaultPage() {
   const [targetDate, setTargetDate] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
-
-  // Shared Ledger & Analytics states
   const [sharedTransactions, setSharedTransactions] = useState<any[]>([]);
   const [totalVaultIncome, setTotalVaultIncome] = useState<number>(0);
   const [totalVaultExpense, setTotalVaultExpense] = useState<number>(0);
