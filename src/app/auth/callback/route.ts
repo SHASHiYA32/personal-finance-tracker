@@ -5,10 +5,10 @@ import { createServerClient } from '@supabase/ssr';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+  
+  const next = searchParams.get('next') ?? '/dashboard';
 
   if (code) {
-    // Await the cookies() promise here!
     const cookieStore = await cookies();
     
     const supabase = createServerClient(
@@ -35,6 +35,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Return user to an error page if authentication fails
   return NextResponse.redirect(`${origin}/login?error=auth-callback-failed`);
 }

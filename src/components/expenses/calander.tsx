@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { ChevronLeft, ChevronRight, Filter, Users } from "lucide-react";
 
 type FilterType = "all" | "income" | "expense";
 
@@ -40,7 +40,9 @@ export default function ExpenseCalendar() {
 
   useEffect(() => {
     async function getCategories() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
           .from("categories")
@@ -244,16 +246,26 @@ export default function ExpenseCalendar() {
             {filteredExpenses.map((exp) => (
               <div
                 key={exp.id}
-                className="p-2 rounded-lg bg-white/5 border border-white/10"
+                className="p-2 rounded-lg bg-white/5 border border-white/10 relative overflow-hidden"
               >
                 <div className="flex justify-between">
-                  <p className="text-sm text-white">{exp.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm text-white">{exp.title}</p>
+                    {exp.vault_id && (
+                      <span
+                        title="Shared Family Balance Item"
+                        className="flex items-center"
+                      >
+                        <Users className="h-3 w-3 text-pink-400" />
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-rose-400">
                     -{formatCurrency(Number(exp.amount))}
                   </p>
                 </div>
 
-                <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider">
+                <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider mt-0.5">
                   {getCategoryName(exp.category)}
                 </p>
               </div>

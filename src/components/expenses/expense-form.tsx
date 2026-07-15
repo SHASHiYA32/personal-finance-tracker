@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -11,23 +11,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Category } from "@/types/category";
+import { getUserVaults, Vault } from "@/types/vaults";
 
 interface ExpenseFormProps {
   onSubmit: (data: {
     title: string;
     amount: number;
-    category: string; 
+    category: string;
     date: string;
     note?: string | null;
+    vault_id?: string | null;
   }) => Promise<void>;
   categories: Category[];
   categoriesLoading?: boolean;
 }
 
-export default function ExpenseForm({ 
-  onSubmit, 
-  categories, 
-  categoriesLoading 
+export default function ExpenseForm({
+  onSubmit,
+  categories,
+  categoriesLoading,
 }: ExpenseFormProps) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -37,22 +39,26 @@ export default function ExpenseForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Vault state engine
+  const [vaults, setVaults] = useState<Vault[]>([]);
+  const [selectedVaultId, setSelectedVaultId] = useState<string>("personal");
+
   useEffect(() => {
-    if (categories.length > 0 && !category) {
-      setCategory(String(categories[0].id));
+    async function fetchVaultOptions() {
+      try {
+        const userVaults = await getUserVaults();
+        if (userVaults) setVaults(userVaults);
+      } catch (err) {
+        console.error("Failed to load vault drop options:", err);
+      }
     }
-  }, [categories, category]);
+    fetchVaultOptions();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !amount || !category || !date) {
       setError("Please fill in all required fields.");
-      return;
-    }
-
-    const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      setError("Amount must be a positive number.");
       return;
     }
 
@@ -62,148 +68,184 @@ export default function ExpenseForm({
     try {
       await onSubmit({
         title,
-        amount: numericAmount,
+        amount: parseFloat(amount),
         category,
-        date: new Date(date).toISOString(),
-        note: note ? note : null,
+        date,
+        note: note.trim() || null,
+        vault_id: selectedVaultId === "personal" ? null : selectedVaultId,
       });
 
+      // Reset Form fields safely
       setTitle("");
       setAmount("");
-      setCategory(categories.length > 0 ? String(categories[0].id) : "");
-      setDate(new Date().toISOString().split("T")[0]);
+      setCategory("");
       setNote("");
+      setSelectedVaultId("personal");
     } catch (err: any) {
-      setError(err.message || "Failed to submit expense");
+      setError(err.message || "Failed to create expense entry.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Helper function to resolve string category name from matching active select ID
-  const getSelectedCategoryLabel = () => {
-    const matched = categories.find((c) => String(c.id) === category);
-    return matched ? matched.category : "Select category";
-  };
-
   return (
-    <div className="glass-panel p-6 w-full relative overflow-hidden">
-      <h3 className="text-sm font-bold text-slate-200 mb-4 flex items-center gap-2">
-        <Plus className="h-4.5 w-4.5 text-indigo-400" />
-        <span>Record New Expense</span>
-      </h3>
+    <form onSubmit={handleSubmit} className="glass-panel p-6 space-y-4">
+      <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        <h2 className="text-sm font-bold text-white tracking-wide">
+          Record Expense
+        </h2>
+        <span className="text-[10px] font-mono text-slate-500">
+          * Required fields
+        </span>
+      </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-xs font-medium text-red-400">
+        <div className="p-3 text-xs bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+          Expense Title / Item <span className="text-red-400">*</span>
+        </label>
+        <Input
+          type="text"
+          required
+          placeholder="e.g. Weekly Groceries, Server Costs"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full glass-input"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Expense Description <span className="text-red-400">*</span>
+            Amount ($) <span className="text-red-400">*</span>
           </label>
           <Input
-            type="text"
+            type="number"
+            step="0.01"
             required
-            placeholder="e.g. Grocery Store, Rent, Uber"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full glass-input"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Amount (USD) <span className="text-red-400">*</span>
-            </label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full glass-input"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Category <span className="text-red-400">*</span>
-            </label>
-            <Select
-              value={category}
-              onValueChange={(value) => {
-                if (value) setCategory(value);
-              }}
-              disabled={categoriesLoading || categories.length === 0}
-            >
-              <SelectTrigger className="w-full glass-input bg-slate-900 text-left">
-                <SelectValue>
-                  {categoriesLoading 
-                    ? "Loading..." 
-                    : categories.length === 0 
-                    ? "No categories" 
-                    : getSelectedCategoryLabel()}
-                </SelectValue>
-              </SelectTrigger>
-
-              <SelectContent className="bg-slate-900 border-white/10 backdrop-blur-xl">
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={String(cat.id)}>
-                    {cat.category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Transaction Date <span className="text-red-400">*</span>
-          </label>
-          <Input
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
             className="w-full glass-input"
           />
         </div>
 
         <div>
           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            Additional Notes (Optional)
+            Category <span className="text-red-400">*</span>
           </label>
-          <textarea
-            placeholder="Add brief details..."
-            rows={2}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full glass-input resize-none"
-          />
+          <Select
+            value={category}
+            onValueChange={(val) => setCategory(val || "")}
+            disabled={categoriesLoading}
+          >
+            <SelectTrigger className="w-full glass-input">
+              <SelectValue
+                placeholder={
+                  categoriesLoading ? "Loading..." : "Select category"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-950 border-white/10 text-white">
+              {categories.map((cat) => (
+                <SelectItem
+                  key={cat.id}
+                  value={cat.category}
+                  className="focus:bg-white/10 text-xs"
+                >
+                  {cat.category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
-        <button
-          type="submit"
-          disabled={submitting || categories.length === 0}
-          className="w-full glass-button-primary mt-2"
-        >
-          {submitting ? (
-            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              <Plus className="h-4 w-4" />
-              <span>Add Expense Entry</span>
-            </>
-          )}
-        </button>
-      </form>
-    </div>
+      {vaults.length > 0 && (
+        <div>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+            <Users className="h-3 w-3 text-indigo-400" /> Account Context /
+            Allocation Pool
+          </label>
+          <Select
+            value={selectedVaultId}
+            onValueChange={(val) => setSelectedVaultId(val || "")}
+          >
+            <SelectTrigger className="w-full glass-input">
+              <SelectValue placeholder="Select Allocation Target">
+                {/* Dynamic Label Translator */}
+                {selectedVaultId === "personal" || selectedVaultId === ""
+                  ? "👤 Personal Account Balance"
+                  : `👥 Collaborative Vault: ${vaults.find((v) => v.id === selectedVaultId)?.name || "Loading Vault..."}`}
+              </SelectValue>
+            </SelectTrigger>
+
+            <SelectContent className="bg-slate-950 border-white/10 text-white">
+              <SelectItem
+                value="personal"
+                className="focus:bg-white/10 text-xs"
+              >
+                👤 Personal Account Balance
+              </SelectItem>
+              {vaults.map((vault) => (
+                <SelectItem
+                  key={vault.id}
+                  value={vault.id}
+                  className="focus:bg-white/10 text-xs"
+                >
+                  👥 Collaborative Vault: {vault.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+          Transaction Date <span className="text-red-400">*</span>
+        </label>
+        <Input
+          type="date"
+          required
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full glass-input"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+          Additional Notes (Optional)
+        </label>
+        <textarea
+          placeholder="Add brief details..."
+          rows={2}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full glass-input resize-none"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={submitting || categories.length === 0}
+        className="w-full glass-button-primary mt-2"
+      >
+        {submitting ? (
+          <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          <>
+            <Plus className="h-4.5 w-4.5" />
+            <span>Record Expense</span>
+          </>
+        )}
+      </button>
+    </form>
   );
 }

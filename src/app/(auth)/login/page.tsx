@@ -24,7 +24,7 @@ export default function LoginPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        router.push("/");
+        router.push("/dashboard");
         router.refresh();
       }
     });
@@ -42,7 +42,6 @@ export default function LoginPage() {
     }
   }, []);
 
-  // Email Sign In
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -56,7 +55,7 @@ export default function LoginPage() {
 
       if (signInError) throw signInError;
 
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     } catch (err: any) {
       setError(err.message || "Invalid email or password");
@@ -65,7 +64,6 @@ export default function LoginPage() {
     }
   };
 
-  // OAuth Sign In Handler
   const handleOAuthLogin = async (
     provider: "google" | "facebook" | "apple",
   ) => {
@@ -76,7 +74,6 @@ export default function LoginPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          // Replaced window.location.origin with environmental host detection
           redirectTo: `${getURL()}auth/callback`,
         },
       });
@@ -96,7 +93,6 @@ export default function LoginPage() {
         transition={{ duration: 0.3 }}
         className="w-full max-w-md glass-panel p-8 relative overflow-hidden"
       >
-        {/* Decorative Glow */}
         <div className="absolute -right-20 -top-20 w-44 h-44 rounded-full blur-3xl bg-indigo-500/20" />
         <div className="absolute -left-20 -bottom-20 w-44 h-44 rounded-full blur-3xl bg-pink-500/10" />
 

@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   Calendar,
   DollarSign,
+  Users,
 } from "lucide-react";
 import {
   Select,
@@ -65,10 +66,10 @@ export default function ExpenseTable({
       const matchesSearch =
         exp.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (exp.note && exp.note.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
       const matchesCategory =
         selectedCategory === "All" || String(exp.category) === selectedCategory;
-        
+
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -136,7 +137,7 @@ export default function ExpenseTable({
           >
             All
           </button>
-          
+
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -176,22 +177,26 @@ export default function ExpenseTable({
                   <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
                     <DollarSign className="h-5 w-5" />
                   </div>
-                  <div className="min-w-0">
-                    <h5 className="text-sm font-semibold text-white truncate pr-4">
-                      {exp.title}
-                    </h5>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[10px] text-slate-400">
-                      <span className="font-semibold text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-sm font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors">
+                        {exp.title}
+                      </h4>
+                      <span className="text-[10px] font-mono text-indigo-400 font-semibold uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/10">
                         {getCategoryName(exp.category)}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 text-slate-500" />
-                        {formatDate(exp.date)}
-                      </span>
+
+                      {/* NEW: Shared Family Tag Pill */}
+                      {exp.vault_id && (
+                        <span className="text-[10px] font-sans text-pink-400 font-bold bg-pink-500/10 px-2 py-0.5 rounded border border-pink-500/10 flex items-center gap-1">
+                          <Users className="h-2.5 w-2.5" /> Shared Vault
+                        </span>
+                      )}
                     </div>
                     {exp.note && (
                       <p className="text-xs text-slate-400 py-1 max-w-xl font-normal italic leading-relaxed">
-                       <span>note: </span>{exp.note}
+                        <span>note: </span>
+                        {exp.note}
                       </p>
                     )}
                   </div>

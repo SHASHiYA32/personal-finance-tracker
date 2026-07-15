@@ -7,5 +7,6 @@ export interface Expense {
   date: string;
   note?: string | null;
   created_at: string;
+  vault_id: string | null;
   type: "income" | "expense"; 
 }

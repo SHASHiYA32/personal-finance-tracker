@@ -45,6 +45,7 @@ export function useIncome() {
     source: string;
     amount: number;
     date: string;
+    vault_id?: string | null;
   }) => {
     setLoading(true);
     setError(null);

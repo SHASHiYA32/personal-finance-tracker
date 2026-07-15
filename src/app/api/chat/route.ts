@@ -12,6 +12,7 @@ CRITICAL RULES:
 2. Conversational tracking words such as "sure", "yes", "ok", "do it", or confirmation acknowledgments to your own previous instruction are strictly ON-TOPIC. Do NOT mark them as off-topic.
 3. If the user wants to see their recent transactions, history, or list items, set toolCall.name to 'showRecent' and itemType to either 'expense' or 'income'.
 4. For deletions, you MUST NOT perform them automatically. Set toolCall to 'requestDelete' so the client-side app can present a confirmation box.
+5. If the user mentions "family", "shared", "vault", "household", "our pool", or "joint", make sure to set 'isShared' to true inside the tool arguments so it routes to the family vault.
 `;
 
 export async function POST(req: Request) {
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
               itemType: z.enum(["expense", "income", "budget"]).optional().describe("The classification targeted"),
               itemId: z.string().optional().describe("The database identifier"),
               descriptionText: z.string().optional().describe("Brief text summary"),
+              isShared: z.boolean().optional().describe("Set to true if this is a collaborative family, joint pool, or household vault transaction"),
             }),
           })
           .optional(),

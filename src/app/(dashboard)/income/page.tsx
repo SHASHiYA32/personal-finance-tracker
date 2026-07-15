@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useIncome } from "@/hooks/use-income";
 import { formatCurrency } from "@/lib/helpers/currency";
 import { formatDate } from "@/lib/helpers/date";
+import { createClient } from "@/lib/supabase/client";
 import {
   Sparkles,
   DollarSign,
@@ -26,14 +27,20 @@ import {
 type SortKey = "date-desc" | "date-asc" | "amount-desc" | "amount-asc";
 
 export default function IncomePage() {
+  const supabase = createClient();
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
   const { incomes, loading, fetchIncomes, addIncome, deleteIncome } =
     useIncome();
 
+  // Vault Selection States
+  const [vaults, setVaults] = useState<any[]>([]);
+  const [vaultsLoading, setVaultsLoading] = useState(true);
+
   // Form State
   const [source, setSource] = useState("");
   const [amount, setAmount] = useState("");
+  const [vaultId, setVaultId] = useState<string>("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -42,6 +49,40 @@ export default function IncomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("date-desc");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Fetch Available Vaults for Selector
+  useEffect(() => {
+    async function loadUserVaults() {
+      try {
+        setVaultsLoading(true);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch user memberships to restrict to shared family vaults
+        const { data: memberships } = await supabase
+          .from("vault_members")
+          .select("vault_id")
+          .eq("user_id", user.id);
+
+        if (memberships && memberships.length > 0) {
+          const ids = memberships.map((m) => m.vault_id);
+          const { data: vaultsData } = await supabase
+            .from("vaults")
+            .select("id, name")
+            .in("id", ids);
+
+          if (vaultsData) setVaults(vaultsData);
+        }
+      } catch (err) {
+        console.error("Failed to load vaults for selection menu:", err);
+      } finally {
+        setVaultsLoading(false);
+      }
+    }
+    loadUserVaults();
+  }, [supabase]);
 
   useEffect(() => {
     fetchIncomes(currentMonth, currentYear);
@@ -74,11 +115,13 @@ export default function IncomePage() {
         source,
         amount: numericAmount,
         date: new Date(date).toISOString(),
+        vault_id: vaultId && vaultId !== "none" ? vaultId : null, // Connects income directly to chosen Vault
       });
 
-      // Reset
+      // Reset Form
       setSource("");
       setAmount("");
+      setVaultId("");
       setDate(new Date().toISOString().split("T")[0]);
     } catch (err: any) {
       setFormError(err.message || "Failed to add income entry.");
@@ -198,6 +241,45 @@ export default function IncomePage() {
                 />
               </div>
 
+              {/* Dynamic Vault Selection Menu */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Link to Family Vault (Optional)
+                </label>
+                <Select
+                  value={vaultId}
+                  onValueChange={(val) => setVaultId(val || "none")}
+                  disabled={vaultsLoading}
+                >
+                  <SelectTrigger className="w-full glass-input text-left text-xs text-white">
+                    <SelectValue>
+                      {vaultsLoading
+                        ? "Loading Vaults..."
+                        : vaults.find((v) => v.id === vaultId)?.name ||
+                          "Personal Income (No Vault)"}
+                    </SelectValue>
+                  </SelectTrigger>
+
+                  <SelectContent className="bg-slate-950 border-white/10 text-white font-medium text-xs">
+                    <SelectItem
+                      value="none"
+                      className="focus:bg-white/10 text-slate-400"
+                    >
+                      Personal Income (No Vault)
+                    </SelectItem>
+                    {vaults.map((v) => (
+                      <SelectItem
+                        key={v.id}
+                        value={v.id}
+                        className="focus:bg-white/10 text-white"
+                      >
+                        {v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                   Receipt Date *
@@ -263,7 +345,7 @@ export default function IncomePage() {
               </div>
             </div>
 
-            {/* List */}
+            {/* Income List */}
             <div className="space-y-3.5">
               {loading && incomes.length === 0 ? (
                 <div className="py-12 flex items-center justify-center">

@@ -20,7 +20,6 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [viewPass, setViewPass] = useState(false);
 
-  // Email Sign Up
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,7 +41,7 @@ export default function RegisterPage() {
       setSuccess(true);
 
       setTimeout(() => {
-        router.push("/");
+        router.push("/dashboard");
         router.refresh();
       }, 3000);
     } catch (err: any) {
@@ -52,7 +51,6 @@ export default function RegisterPage() {
     }
   };
 
-  // OAuth Sign In Handler
   const handleOAuthRegister = async (
     provider: "google" | "facebook" | "apple",
   ) => {
@@ -63,7 +61,6 @@ export default function RegisterPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          // Replaced window.location.origin with an environmental dynamic fallback route
           redirectTo: `${getURL()}auth/callback`,
         },
       });

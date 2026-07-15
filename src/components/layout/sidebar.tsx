@@ -12,17 +12,20 @@ import {
   Settings, 
   LogOut,
   Sparkles,
-  CalendarSearch
+  CalendarSearch,
+  Vault,
+  Briefcase
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 const menuItems = [
-  { name: 'Overview', href: '/', icon: LayoutDashboard },
+  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Expenses', href: '/expenses', icon: Receipt },
   { name: 'Income', href: '/income', icon: Wallet },
   { name: 'Budget', href: '/budget', icon: PiggyBank },
   { name: 'Calendar', href: '/calender', icon: CalendarSearch },
   { name: 'Analytics', href: '/analytics', icon: LineChart },
+  { name: 'Vault', href: '/vault', icon: Briefcase },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -40,9 +43,8 @@ export default function Sidebar() {
   return (
     <aside className="w-64 h-screen fixed left-0 top-0 hidden md:flex flex-col z-30 p-4">
       <div className="glass-panel h-full w-full flex flex-col justify-between p-6">
-        {/* Brand Header */}
         <div>
-          <a href='/' className="flex items-center gap-2 mb-8">
+          <a href='/dashboard' className="flex items-center gap-2 mb-8">
             <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
