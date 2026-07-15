@@ -229,7 +229,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <button onClick={handleSignOut} className="w-full py-2.5 rounded-xl border border-red-500/20 hover:bg-red-500/10 text-red-400 transition text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
+          <button onClick={handleSignOut} className="w-full py-2.5 rounded-xl border border-red-500/20 hover:bg-red-500/30 bg-red-500/10 text-red-400 transition text-[11px] font-semibold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer">
             <LogOut className="h-4 w-4" />
             <span>Terminate Authentication Session</span>
           </button>

@@ -15,7 +15,7 @@ import { formatCurrency } from '@/lib/helpers/currency';
 
 interface IncomeVsExpenseProps {
   data: {
-    name: string; // Day or Month label
+    name: string; 
     Income: number;
     Expenses: number;
   }[];

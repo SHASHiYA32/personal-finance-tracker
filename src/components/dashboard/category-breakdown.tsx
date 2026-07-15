@@ -3,14 +3,17 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/lib/helpers/currency';
+import { createClient } from '@/lib/supabase/client';
+import { Category } from '@/types/category';
 
 interface CategoryData {
-  name: string;
+  name: string; // May contain category ID or category name
   value: number;
 }
 
 interface CategoryBreakdownProps {
   data: CategoryData[];
+  categories?: Category[]; // Optional custom category database mapping
 }
 
 const COLORS = [
@@ -23,12 +26,34 @@ const COLORS = [
   '#64748b', // Slate (Other)
 ];
 
-export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
+export default function CategoryBreakdown({ data, categories: initialCategories }: CategoryBreakdownProps) {
+  const supabase = createClient();
   const [mounted, setMounted] = useState(false);
+  const [categories, setCategories] = useState<Category[]>(initialCategories || []);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch categories to translate names if numerical IDs are supplied in data
+  useEffect(() => {
+    if (initialCategories) {
+      setCategories(initialCategories);
+      return;
+    }
+
+    async function getCategories() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("categories")
+          .select("*")
+          .eq("user_id", user.id);
+        if (data) setCategories(data);
+      }
+    }
+    getCategories();
+  }, [supabase, initialCategories]);
 
   if (!mounted) {
     return (
@@ -38,7 +63,19 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
     );
   }
 
-  const total = data.reduce((acc, curr) => acc + curr.value, 0);
+  // Helper to translate category ID to name
+  const getCategoryName = (catId: string) => {
+    const matched = categories.find((c) => String(c.id) === String(catId));
+    return matched ? matched.category : catId;
+  };
+
+  // Convert raw data so both keys and labels display category names
+  const resolvedData = data.map((item) => ({
+    ...item,
+    name: getCategoryName(item.name),
+  }));
+
+  const total = resolvedData.reduce((acc, curr) => acc + curr.value, 0);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -68,7 +105,7 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
         <p className="text-[11px] text-slate-400">Distribution of your spending this month</p>
       </div>
 
-      {data.length === 0 ? (
+      {resolvedData.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-xs text-slate-500">
           No expenses recorded for breakdown.
         </div>
@@ -79,7 +116,7 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={resolvedData}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -87,7 +124,7 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
                   paddingAngle={4}
                   dataKey="value"
                 >
-                  {data.map((entry, index) => (
+                  {resolvedData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -106,7 +143,7 @@ export default function CategoryBreakdown({ data }: CategoryBreakdownProps) {
 
           {/* Color Legend List */}
           <div className="flex-1 max-h-[180px] overflow-y-auto w-full space-y-1.5 px-2">
-            {data.map((item, index) => {
+            {resolvedData.map((item, index) => {
               const percentage = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
               const color = COLORS[index % COLORS.length];
 
