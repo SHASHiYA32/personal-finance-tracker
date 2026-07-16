@@ -45,37 +45,12 @@ export default function Navbar() {
   const [joinedAt, setJoinedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    async function getUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUserEmail(user.email ?? null);
-
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", user.id)
-          .single();
-
-        if (profile?.display_name) {
-          setDisplayName(profile.display_name);
-        } else {
-          setDisplayName(user.email ? user.email.split("@")[0] : "User");
-        }
-      }
-    }
-    getUser();
-  }, [supabase]);
-
-  useEffect(() => {
     async function getUserData() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
         setUserEmail(user.email ?? null);
-
         const authProvider = user.app_metadata?.provider || null;
         setProvider(authProvider);
 
@@ -96,6 +71,7 @@ export default function Navbar() {
             null,
         );
         setAvatarUrl(profile?.avatar_url || metadataAvatar || null);
+
         if (profile?.created_at) {
           setJoinedAt(
             new Date(profile.created_at).toLocaleDateString("en-US", {
@@ -107,13 +83,11 @@ export default function Navbar() {
       }
     }
     getUserData();
-  }, []);
+  }, [supabase]);
 
   const renderProviderIcon = (provider: string | null) => {
     if (!provider) return null;
-
     const normalizedProvider = provider.toLowerCase().trim();
-
     switch (normalizedProvider) {
       case "google":
         return (
@@ -138,7 +112,7 @@ export default function Navbar() {
             </svg>
           </div>
         );
-      case "Facebook":
+      case "facebook":
         return (
           <div className="absolute -bottom-1 -right-1 h-4.5 w-4.5 rounded-full bg-[#1877F2] border border-white/10 flex items-center justify-center shadow-lg">
             <svg className="h-2.5 w-2.5 fill-white" viewBox="0 0 24 24">
@@ -165,33 +139,9 @@ export default function Navbar() {
     router.refresh();
   };
 
-  const getPageTitle = () => {
-    switch (pathname) {
-      case "/dashboard":
-        return "Overview";
-      case "/expenses":
-        return "Expenses";
-      case "/income":
-        return "Income Streams";
-      case "/budget":
-        return "Budgets";
-      case "/analytics":
-        return "Visual Analytics";
-      case "/calender":
-        return "Calendar";
-      case "/vault":
-        return "Vault";
-      case "/settings":
-        return "Settings";
-      default:
-        return "Dashboard";
-    }
-  };
-
   return (
     <>
       <header className="w-full h-20 flex items-center justify-between px-6 md:px-12 z-20 sticky top-0 bg-transparent">
-        {/* Page Title (Desktop) & Brand Logo (Mobile) */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileMenuOpen(true)}
@@ -199,138 +149,163 @@ export default function Navbar() {
           >
             <Menu className="h-6 w-6" />
           </button>
-
-          <div className="px-7 py-2 rounded-xl backdrop-blur-xl">
-            <h2 className="hidden md:block text-2xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              {getPageTitle()}
+          <div className="hidden md:block px-7 py-2 rounded-xl backdrop-blur-xl">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              AuraFinance
             </h2>
-          </div>
-
-          <div className="md:hidden flex items-center gap-2">
-            <div className="h-7 w-7 rounded-md bg-indigo-600 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-bold text-sm text-white">AuraFinance</span>
           </div>
         </div>
 
-        {/* User Card */}
         <button
           onClick={() => setProfileModalOpen(true)}
           className="flex items-center gap-4 rounded-2xl backdrop-blur-2xl transition-transform active:scale-95"
         >
-          <div className="flex items-center gap-4 rounded-2xl backdrop-blur-2xl">
-            <div className="glass-panel py-2 px-4 flex items-center gap-3 bg-white/[0.02] border-white/5">
-              <div className="relative flex items-center justify-center">
-                <div className="relative h-8 w-8 rounded-full">
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={displayName || "User avatar"}
-                      className="h-full w-full rounded-full object-cover border border-white/10 shadow-md shadow-indigo-500/10 hover:border-indigo-500/40 transition-all"
-                      onError={() => setAvatarUrl(null)}
-                    />
-                  ) : (
-                    <div className="h-full w-full rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white uppercase shadow-md shadow-indigo-500/10 hover:scale-102 transition-all">
-                      {displayName ? (
-                        displayName[0]
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
-                    </div>
-                  )}
-
-                  {provider && (
-                    <div className="absolute -bottom-1 -right-1 z-30">
-                      {renderProviderIcon(provider)}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-white leading-tight">
-                  {displayName}
-                </p>
-                <p className="text-[10px] text-slate-400 leading-none">
-                  {userEmail}
-                </p>
-              </div>
+          <div className="glass-panel py-2 px-4 flex items-center gap-3 bg-white/[0.02] border-white/5">
+            <div className="relative h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white uppercase">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                displayName?.[0]
+              )}
             </div>
           </div>
         </button>
       </header>
 
-      {/* Mobile Slide-over Menu */}
+      {/* Mobile Nav */}
       <AnimatePresence>
-        {profileModalOpen && (
+        {mobileMenuOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setProfileModalOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+              onClick={() => setMobileMenuOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+            />
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              className="fixed glass-panel top-0 left-0 w-80 h-full bg-slate-900 border-r border-white/10 p-6 z-50 flex flex-col justify-between"
             >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                onClick={(e) => e.stopPropagation()} // Prevents closing when clicking inside the box
-                className="glass-panel w-full max-w-sm bg-slate-900/90 border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center text-center"
+              <div className="flex flex-col gap-5 mt-8">
+                <a href="/dashboard" className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
+                      AuraFinance
+                    </h1>
+                    <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">
+                      Premium Tracking
+                    </p>
+                  </div>
+                </a>
+
+                <nav className="space-y-1">
+                  {menuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href;
+
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative overflow-hidden group ${
+                          isActive
+                            ? "text-white bg-indigo-600/10 border border-indigo-500/20"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="active-indicator"
+                            className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-r"
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 30,
+                            }}
+                          />
+                        )}
+                        <Icon
+                          className={`h-5 w-5 transition-transform duration-200 group-hover:scale-110 ${
+                            isActive
+                              ? "text-indigo-400"
+                              : "text-slate-400 group-hover:text-slate-200"
+                          }`}
+                        />
+                        <span>{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-red-400 mb-3"
               >
-                {/* Avatar Preview */}
-                <div className="h-20 w-20 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 mb-4 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={displayName || "User avatar"}
-                      className="h-full w-full rounded-full object-cover border border-white/10 shadow-md shadow-indigo-500/10 hover:border-indigo-500/40 transition-all"
-                      onError={() => setAvatarUrl(null)}
-                    />
-                  ) : (
-                    <div className="h-full w-full rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-xs font-bold text-white uppercase shadow-md shadow-indigo-500/10 hover:scale-102 transition-all">
-                      {displayName ? (
-                        displayName[0]
-                      ) : (
-                        <User className="h-4 w-4" />
-                      )}
-                    </div>
-                  )}
-
-                  {provider && (
-                    <div className="absolute -bottom-1 -right-1 z-30">
-                      {renderProviderIcon(provider)}
-                    </div>
-                  )}
-                </div>
-
-                <h3 className="text-xl font-bold text-white">{displayName}</h3>
-                <p className="text-sm text-slate-400 mb-6">{userEmail}</p>
-
-                <div className="w-full space-y-3 text-sm text-left mb-8">
-                  <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span className="text-slate-500">Provider</span>
-                    <span className="text-white capitalize">
-                      {provider || "Email"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-white/5 pb-2">
-                    <span className="text-slate-500">Member Since</span>
-                    <span className="text-white">
-                      {joinedAt || "Loading..."}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSignOut}
-                  className="w-full py-3 rounded-xl bg-red-500/10 text-red-400 font-medium hover:bg-red-500/20 transition-all border border-red-500/20"
-                >
-                  Sign Out
-                </button>
-              </motion.div>
+                <LogOut className="h-5 w-5" /> Sign Out
+              </button>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Profile Modal */}
+      <AnimatePresence>
+        {profileModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setProfileModalOpen(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-panel w-full max-w-sm bg-slate-900/90 border border-white/10 p-6 rounded-3xl flex flex-col items-center text-center"
+            >
+              <div className="h-20 w-20 rounded-full bg-indigo-500 mb-4 flex items-center justify-center text-2xl font-bold text-white">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    className="h-full w-full rounded-full object-cover"
+                  />
+                ) : (
+                  displayName?.[0]
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-white">{displayName}</h3>
+              <p className="text-sm text-slate-400 mb-6">{userEmail}</p>
+              <div className="w-full space-y-3 text-sm text-left mb-8 border-t border-white/10 pt-4">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Provider</span>
+                  <span className="text-white capitalize">
+                    {provider || "Email"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Member Since</span>
+                  <span className="text-white">{joinedAt || "Loading..."}</span>
+                </div>
+              </div>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center justify-center gap-3 w-full px-4 py-3 rounded-xl bg-red-500/10 text-red-400 font-medium hover:bg-red-500/20 border border-red-500/20"
+              >
+                <LogOut className="h-5 w-5" /> Sign Out
+              </button>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
