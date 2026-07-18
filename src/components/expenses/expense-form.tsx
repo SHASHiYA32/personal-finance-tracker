@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Users } from "lucide-react";
+import { Plus, User, Users } from "lucide-react";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -145,17 +145,17 @@ export default function ExpenseForm({
             disabled={categoriesLoading}
           >
             <SelectTrigger className="w-full glass-input">
-              <SelectValue
-                placeholder={
-                  categoriesLoading ? "Loading..." : "Select category"
-                }
-              />
+              <SelectValue placeholder="Select category">
+                {category
+                  ? categories.find((c) => String(c.id) === category)?.category
+                  : "Select category"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent className="bg-slate-950 border-white/10 text-white">
               {categories.map((cat) => (
                 <SelectItem
                   key={cat.id}
-                  value={cat.category}
+                  value={String(cat.id)}
                   className="focus:bg-white/10 text-xs"
                 >
                   {cat.category}
@@ -180,8 +180,8 @@ export default function ExpenseForm({
               <SelectValue placeholder="Select Allocation Target">
                 {/* Dynamic Label Translator */}
                 {selectedVaultId === "personal" || selectedVaultId === ""
-                  ? "👤 Personal Account Balance"
-                  : `👥 Collaborative Vault: ${vaults.find((v) => v.id === selectedVaultId)?.name || "Loading Vault..."}`}
+                  ? "Personal Account Balance"
+                  : `Collaborative Vault: ${vaults.find((v) => v.id === selectedVaultId)?.name || "Loading Vault..."}`}
               </SelectValue>
             </SelectTrigger>
 
@@ -190,7 +190,7 @@ export default function ExpenseForm({
                 value="personal"
                 className="focus:bg-white/10 text-xs"
               >
-                👤 Personal Account Balance
+                <User /> Personal Account Balance
               </SelectItem>
               {vaults.map((vault) => (
                 <SelectItem
@@ -198,7 +198,7 @@ export default function ExpenseForm({
                   value={vault.id}
                   className="focus:bg-white/10 text-xs"
                 >
-                  👥 Collaborative Vault: {vault.name}
+                  <Users /> Collaborative Vault: {vault.name}
                 </SelectItem>
               ))}
             </SelectContent>

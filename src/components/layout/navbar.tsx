@@ -17,6 +17,7 @@ import {
   User,
   CalendarSearch,
   Briefcase,
+  ShieldUser,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -150,8 +151,8 @@ export default function Navbar() {
             <Menu className="h-6 w-6" />
           </button>
           <div className="hidden md:block px-7 py-2 rounded-xl backdrop-blur-xl">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              AuraFinance
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent flex flex-row items-center gap-2">
+              Hello, {displayName} <ShieldUser className="text-amber-500"/>
             </h2>
           </div>
         </div>

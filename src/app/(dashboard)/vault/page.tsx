@@ -22,11 +22,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import {
-  createVault,
-  joinVault,
-  Vault,
-} from "@/types/vaults";
+import { createVault, joinVault, Vault } from "@/types/vaults";
 
 export default function FamilyVaultPage() {
   const supabase = createClient();
@@ -139,7 +135,7 @@ export default function FamilyVaultPage() {
         const userIds = targetVault.vault_members.map((m: any) => m.user_id);
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, display_name, email")
+          .select("id, display_name, email, avatar_url")
           .in("id", userIds);
 
         const profileMap = new Map();
@@ -202,7 +198,7 @@ export default function FamilyVaultPage() {
     try {
       const { data: expenses, error: expError } = await supabase
         .from("expenses")
-        .select("id, title, amount, category, date, user_id")
+        .select("id, title, amount, category(category), date, user_id")
         .eq("vault_id", vaultId);
 
       if (expError) console.error("Error fetching expenses:", expError);
@@ -249,7 +245,7 @@ export default function FamilyVaultPage() {
         const txProfileMap = new Map();
         txProfiles?.forEach((p) => txProfileMap.set(p.id, p));
 
-        const enrichedTransactions = combined.map((tx) => {
+        const enrichedTransactions = combined.map((tx: any) => {
           const profile = txProfileMap.get(tx.user_id);
           let resolvedName = "";
 
@@ -268,10 +264,15 @@ export default function FamilyVaultPage() {
                 : `User_${tx.user_id.slice(0, 5)}`;
           }
 
-          const displayCategory =
-            typeof tx.category === "object" && tx.category !== null
-              ? (tx.category as any).category
-              : tx.category;
+          let displayCategory = "Uncategorized";
+
+          if (typeof tx.category === "string") {
+            displayCategory = tx.category;
+          } else if (Array.isArray(tx.category)) {
+            displayCategory = tx.category[0]?.category || "Uncategorized";
+          } else if (tx.category && typeof tx.category === "object") {
+            displayCategory = tx.category.category || "Uncategorized";
+          }
 
           return {
             ...tx,
@@ -708,7 +709,7 @@ export default function FamilyVaultPage() {
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPercent}%` }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-indigo-500 to-teal-500 rounded-full"
                   />
                 </div>
               </div>
@@ -817,8 +818,8 @@ export default function FamilyVaultPage() {
             <div className="glass-panel p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-indigo-400" /> Recent Joint
-                  Flow
+                  <Activity className="h-4 w-4 text-indigo-400" />
+                  Recent Joint Flow
                 </h3>
                 <span className="text-[10px] font-mono text-slate-500">
                   LATEST COOPERATIVE ENTRIES
@@ -940,8 +941,16 @@ export default function FamilyVaultPage() {
                       className="flex items-center justify-between p-3 rounded-xl bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] transition-colors group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center font-black text-xs text-white uppercase shadow">
-                          {avatarFallback}
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center font-black text-xs text-white uppercase shadow overflow-hidden">
+                          {member.profiles?.avatar_url ? (
+                            <img
+                              src={member.profiles.avatar_url}
+                              className="h-full w-full object-cover"
+                              alt={member.resolvedName}
+                            />
+                          ) : (
+                            avatarFallback
+                          )}
                         </div>
                         <div>
                           <p className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -968,7 +977,7 @@ export default function FamilyVaultPage() {
                             )
                           }
                           disabled={actionLoading}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-transparent hover:border-rose-500/20"
+                          className="opacity-30 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-transparent hover:border-rose-500/20"
                           title={`Remove ${member.resolvedName}`}
                         >
                           <UserMinus className="h-3.5 w-3.5" />

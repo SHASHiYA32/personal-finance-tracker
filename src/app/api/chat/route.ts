@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     });
 
     const result = await generateObject({
-      model: googleProvider("gemini-2.5-flash"),
+      model: googleProvider("gemini-3.5-flash-lite"),
       system: SYSTEM_PROMPT,
       messages: sdkMessages,
       schema: z.object({

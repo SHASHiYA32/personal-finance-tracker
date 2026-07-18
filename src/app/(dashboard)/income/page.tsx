@@ -392,7 +392,7 @@ export default function IncomePage() {
                         <button
                           onClick={() => handleDelete(inc.id)}
                           disabled={isDeleting}
-                          className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 disabled:opacity-50 cursor-pointer shrink-0"
+                          className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all group-hover:opacity-100 focus:opacity-100 disabled:opacity-50 cursor-pointer shrink-0"
                           title="Delete item"
                         >
                           {isDeleting ? (
