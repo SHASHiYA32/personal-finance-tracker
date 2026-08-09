@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "AuraFinance - Glassmorphic Finance Tracker",
   description:
     "Sleek, real-time personal finance manager with visual analytics",
-  manifest: "/manifest.json",
+  manifest: "/manifest.ts",
 };
 
 export default function RootLayout({

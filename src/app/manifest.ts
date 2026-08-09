@@ -1,4 +1,7 @@
-{
+import type { MetadataRoute } from 'next'
+
+export default function manifest(): MetadataRoute.Manifest {
+  return{
   "name": "AuraFinance - Glassmorphic Finance Tracker",
   "short_name": "AuraFinance",
   "description": "Sleek, real-time personal finance manager with visual analytics",
@@ -18,4 +21,5 @@
       "type": "image/png"
     }
   ]
+}
 }
