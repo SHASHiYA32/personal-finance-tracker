@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "AuraFinance - Glassmorphic Finance Tracker",
   description:
     "Sleek, real-time personal finance manager with visual analytics",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
@@ -28,9 +29,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {children}
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }
